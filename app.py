@@ -32,11 +32,11 @@ if 'buffer_laporan' not in st.session_state:
 
 # --- 3. SISTEM KEAMANAN (PIN RAHASIA) ---
 st.title("🏢 Sistem Analisis & Appraisal Aset Properti")
-st.write("Aplikasi internal untuk generate laporan analisis lingkungan, estimasi harga, dan fasilitas aset secara mendalam.")
+st.write("Aplikasi internal untuk generate laporan analisis lingkungan, estimasi harga, dan aksesibilitas sebuah aset secara mendalam.")
 st.markdown("---")
 
 pin_rahasia = st.sidebar.text_input("🔐 Masukkan PIN Internal:", type="password")
-if pin_rahasia != "ASET123":
+if pin_rahasia != "jatimakmur":
     st.warning("⚠️ Silakan masukkan PIN Internal yang benar di menu sebelah kiri untuk membuka form analisis.")
     st.stop()
 st.sidebar.success("✅ PIN Benar! Akses diberikan.")
@@ -297,7 +297,7 @@ with tab1:
                     "lat": koordinat_lat,
                     "lng": koordinat_lng,
                     "data": {
-                        "identitas": estimasi,
+                        "estimasi": estimasi,
                         "karakteristik": karakteristik,
                         "akses": akses,
                         "poi": poi,
@@ -373,7 +373,7 @@ with tab2:
         st.write("Silakan klik ikon **Pensil (✏️)** di pojok kanan setiap kotak untuk mengedit per bagian. Klik **(✅)** untuk simpan, atau **(❌)** untuk batal.")
         
         # Panggil kotak untuk tiap bagian (tanpa parameter label biar ga ganda)
-        identitas_final = edit_box("identitas", idx)
+        estimasi_final = edit_box("estimasi", idx)
         karakteristik_final = edit_box("karakteristik", idx)
         akses_final = edit_box("akses", idx)
         poi_final = edit_box("poi", idx)
@@ -388,7 +388,7 @@ with tab2:
         
         if st.button("💾 Simpan Perubahan & Kirim ke Tab 3", type="primary", use_container_width=True):
             # Memperbarui data di memori utama dengan hasil editan terbarumu
-            aset['data']['identitas'] = identitas_final
+            aset['data']['estimasi'] = estimasi_final
             aset['data']['karakteristik'] = karakteristik_final
             aset['data']['akses'] = akses_final
             aset['data']['poi'] = poi_final
@@ -416,7 +416,7 @@ with tab3:
                 "Nama_Aset": item['nama'],
                 "Lat": item['lat'],
                 "Lng": item['lng'],
-                "Identitas": st.session_state.get(f"identitas_{i}", item['data']['identitas']),
+                "Estimasi": st.session_state.get(f"estimasi_{i}", item['data']['estimasi']),
                 "Karakteristik": st.session_state.get(f"karakteristik_{i}", item['data']['karakteristik']),
                 "Akses": st.session_state.get(f"akses_{i}", item['data']['akses']),
                 "POI": st.session_state.get(f"poi_{i}", item['data']['poi']),
@@ -452,7 +452,7 @@ with tab3:
                                 row_dict["Nama_Aset"],
                                 row_dict["Lat"],
                                 row_dict["Lng"],
-                                row_dict["Identitas"],
+                                row_dict["Estimasi"],
                                 row_dict["Karakteristik"],
                                 row_dict["Akses"],
                                 row_dict["POI"],
