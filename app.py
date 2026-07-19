@@ -312,81 +312,104 @@ with tab1:
 # --- TAB 2: REVIEW & EDIT ---
 # ==========================================
 with tab2:
-    st.header("📝 Review & Edit Laporan")
+    st.header("📝 Review & Refinement Laporan")
     if not st.session_state.buffer_laporan:
-        st.info("Belum ada laporan di Buffer. Silakan Generate dan Pindahkan dulu dari Tab 1.")
+        st.info("💡 Belum ada laporan di Buffer. Silakan Generate dan Pindahkan dulu dari Tab 1.")
     else:
-        idx = st.selectbox("Pilih Aset yang Ingin Diedit:", range(len(st.session_state.buffer_laporan)), 
-                           format_func=lambda x: st.session_state.buffer_laporan[x]['nama'])
+        idx = st.selectbox(
+            "🏢 Pilih Aset yang Ingin Direview/Diedit:", 
+            range(len(st.session_state.buffer_laporan)), 
+            format_func=lambda x: st.session_state.buffer_laporan[x]['nama']
+        )
         aset = st.session_state.buffer_laporan[idx]
         
-        def edit_box(label, field_key, index):
+        # FUNGSI EDIT BOX DENGAN KOTAK RAPI, TANPA JUDUL GANDA, & TOMBOL BATAL (X)
+        def edit_box(field_key, index):
             unique_key = f"{field_key}_{index}"
+            backup_key = f"{field_key}_backup_{index}"
+            
+            # Inisialisasi data & backup untuk fitur Batal (X)
             if unique_key not in st.session_state:
                 st.session_state[unique_key] = aset['data'].get(field_key, "")
+            if backup_key not in st.session_state:
+                st.session_state[backup_key] = st.session_state[unique_key]
             
-            col1, col2 = st.columns([0.9, 0.1])
-            with col1:
-                if st.session_state.get(f"is_edit_{unique_key}", False):
-                    st.session_state[unique_key] = st.text_area(label, value=st.session_state[unique_key], height=150)
-                else:
-                    st.markdown(f"**{label}**")
-                    st.write(st.session_state[unique_key])
-            with col2:
-                if not st.session_state.get(f"is_edit_{unique_key}", False):
-                    if st.button("✏️", key=f"edit_{unique_key}"):
-                        st.session_state[f"is_edit_{unique_key}"] = True
-                        st.rerun()
-                else:
-                    if st.button("✅", key=f"save_{unique_key}"):
-                        st.session_state[f"is_edit_{unique_key}"] = False
-                        st.rerun()
+            # MEMBUAT KOTAK TEGAS SEPERTI TAB 1
+            with st.container(border=True):
+                col1, col2 = st.columns([0.93, 0.07])
+                with col1:
+                    # Jika sedang mode edit, tampilkan Text Area
+                    if st.session_state.get(f"is_edit_{unique_key}", False):
+                        st.session_state[unique_key] = st.text_area(
+                            "✏️ Mode Edit (Ubah teks di bawah ini):", 
+                            value=st.session_state[unique_key], 
+                            height=180,
+                            label_visibility="collapsed"
+                        )
+                    else:
+                        # Mode normal: Langsung tampilkan Markdown AI (tanpa judul ganda!)
+                        st.markdown(st.session_state[unique_key])
+                
+                with col2:
+                    # Tombol Pensil (Edit) vs Tombol Centang & Silang (Simpan/Batal)
+                    if not st.session_state.get(f"is_edit_{unique_key}", False):
+                        if st.button("✏️", key=f"edit_{unique_key}", help="Edit bagian ini", use_container_width=True):
+                            st.session_state[f"is_edit_{unique_key}"] = True
+                            st.session_state[backup_key] = st.session_state[unique_key] # Simpan backup sebelum edit
+                            st.rerun()
+                    else:
+                        if st.button("✅", key=f"save_{unique_key}", help="Simpan Editan", use_container_width=True):
+                            st.session_state[f"is_edit_{unique_key}"] = False
+                            st.session_state[backup_key] = st.session_state[unique_key] # Update backup
+                            st.rerun()
+                        if st.button("❌", key=f"cancel_{unique_key}", help="Batal Edit", use_container_width=True):
+                            st.session_state[f"is_edit_{unique_key}"] = False
+                            st.session_state[unique_key] = st.session_state[backup_key] # Kembalikan ke teks sebelum diedit!
+                            st.rerun()
+                            
             return st.session_state[unique_key]
 
-        st.subheader(f"📑 Mengedit Aset: {aset['nama']}")
-        identitas_final = edit_box("💰 Estimasi Harga & Identitas", "identitas", idx)
-        karakteristik_final = edit_box("🏘️ Karakteristik Kawasan", "karakteristik", idx)
-        akses_final = edit_box("🛣️ Evaluasi Aksesibilitas", "akses", idx)
-        poi_final = edit_box("📍 Pemetaan Fasilitas (POI)", "poi", idx)
-        swot_final = edit_box("⚖️ Analisis SWOT", "swot", idx)
-        rekomendasi_final = edit_box("🎯 Rekomendasi Optimal", "rekomendasi", idx)
-        kesimpulan_final = edit_box("📝 Kesimpulan Akhir", "kesimpulan", idx)
+        st.markdown(f"### 📑 Memoles Laporan: **{aset['nama']}**")
+        st.write("Silakan klik ikon **Pensil (✏️)** di pojok kanan setiap kotak untuk mengedit per bagian. Klik **(✅)** untuk simpan, atau **(❌)** untuk batal.")
+        
+        # Panggil kotak untuk tiap bagian (tanpa parameter label biar ga ganda)
+        identitas_final = edit_box("identitas", idx)
+        karakteristik_final = edit_box("karakteristik", idx)
+        akses_final = edit_box("akses", idx)
+        poi_final = edit_box("poi", idx)
+        swot_final = edit_box("swot", idx)
+        rekomendasi_final = edit_box("rekomendasi", idx)
+        kesimpulan_final = edit_box("kesimpulan", idx)
+        
+        # --- TOMBOL FINALISASI DAN KIRIM KE TAB 3 ---
+        st.divider()
+        st.markdown("### 🏁 Finalisasi & Kirim Data")
+        st.write("Jika semua kotak di atas sudah fiks dan selesai kamu edit, tekan tombol di bawah agar datanya siap disimpan permanen di Tab 3:")
+        
+        if st.button("💾 Simpan Perubahan & Kirim ke Tab 3", type="primary", use_container_width=True):
+            # Memperbarui data di memori utama dengan hasil editan terbarumu
+            aset['data']['identitas'] = identitas_final
+            aset['data']['karakteristik'] = karakteristik_final
+            aset['data']['akses'] = akses_final
+            aset['data']['poi'] = poi_final
+            aset['data']['swot'] = swot_final
+            aset['data']['rekomendasi'] = rekomendasi_final
+            aset['data']['kesimpulan'] = kesimpulan_final
+            
+            st.success("🎉 Laporan berhasil diperbarui dan dikirim! Silakan buka **Tab 3 (Database & Export)** di atas untuk mengunduh CSV atau simpan ke GSheet.")
 
 # ==========================================
 # --- TAB 3: DATABASE & EXPORT ---
 # ==========================================
 with tab3:
-    st.header("💾 Simpan ke Database & Export")
+    st.header("💾 Pusat Database & Export Aset")
     
     if not st.session_state.buffer_laporan:
-        st.info("Belum ada data laporan yang tersedia di Buffer.")
+        st.info("💡 Belum ada data aset yang siap di-export. Selesaikan laporan di Tab 1 & Tab 2 terlebih dahulu.")
     else:
-        if st.button("🚀 Simpan Permanen ke GSheet", type="primary"):
-            try:
-                client = get_gspread_client()
-                if client:
-                    sheet = client.open("Database_Aset_Negara").sheet1
-                    row_data = [
-                        len(sheet.get_all_values()), # ID
-                        aset['nama'],
-                        aset['lat'],
-                        aset['lng'],
-                        identitas_final,
-                        karakteristik_final,
-                        akses_final,
-                        poi_final,
-                        swot_final,
-                        rekomendasi_final,
-                        kesimpulan_final
-                    ]
-                    sheet.append_row(row_data)
-                    st.success(f"✅ Berhasil menyimpan aset '{aset['nama']}' ke Google Sheet!")
-            except Exception as e:
-                st.error(f"❌ Gagal simpan ke GSheet: {e}")
-
-        st.divider()
-        st.subheader("📥 Export Data untuk Canva Bulk Create")
+        st.subheader("📑 Daftar Aset Siap Simpan / Export")
         
+        # Menyiapkan tabel ringkas untuk dilihat pengguna
         data_for_csv = []
         for i, item in enumerate(st.session_state.buffer_laporan):
             data_for_csv.append({
@@ -402,14 +425,91 @@ with tab3:
                 "Kesimpulan": st.session_state.get(f"kesimpulan_{i}", item['data']['kesimpulan'])
             })
         
-        if data_for_csv:
-            df_export = pd.DataFrame(data_for_csv)
-            csv = df_export.to_csv(index=False).encode('utf-8')
-            
+        df_export = pd.DataFrame(data_for_csv)
+        
+        # Menampilkan tabel ringkas (hanya nama dan koordinat agar layar bersih)
+        st.dataframe(df_export[["Nama_Aset", "Lat", "Lng"]], use_container_width=True)
+        
+        st.markdown("---")
+        
+        # 1. TOMBOL SIMPAN KE GSHEET
+        st.subheader("☁️ Simpan ke Cloud Database (Google Sheets)")
+        st.write("Tekan tombol ini untuk menambahkan seluruh aset di atas ke baris paling bawah di Google Sheet milikmu secara otomatis:")
+        
+        if st.button("🚀 Simpan Permanen ke Google Sheets", type="primary", use_container_width=True):
+            try:
+                client = get_gspread_client()
+                if client:
+                    sheet = client.open("Database_Aset_Negara").sheet1
+                    
+                    with st.spinner("⏳ Mengirim data ke server Google Sheets..."):
+                        existing_data = sheet.get_all_values()
+                        start_id = len(existing_data) # ID otomatis melanjutkan baris terakhir
+                        
+                        for idx_row, row_dict in enumerate(data_for_csv):
+                            row_data = [
+                                start_id + idx_row, # ID otomatis berurutan
+                                row_dict["Nama_Aset"],
+                                row_dict["Lat"],
+                                row_dict["Lng"],
+                                row_dict["Identitas"],
+                                row_dict["Karakteristik"],
+                                row_dict["Akses"],
+                                row_dict["POI"],
+                                row_dict["SWOT"],
+                                row_dict["Rekomendasi"],
+                                row_dict["Kesimpulan"]
+                            ]
+                            sheet.append_row(row_data)
+                            
+                    st.success("🎉 Berhasil! Semua aset di atas telah sukses disimpan ke dalam Google Sheets secara permanen!")
+            except Exception as e:
+                st.error(f"❌ Gagal simpan ke GSheet: {e}")
+                st.info("💡 Tips: Jika error [403] Drive API, pastikan kamu sudah mengaktifkan Google Drive API lewat link di pesan error sebelumnya.")
+
+        # 2. FITUR MELIHAT LIVE DATABASE GSHEET
+        with st.expander("📖 Klik di sini untuk melihat Isi Live Database Google Sheets Kamu"):
+            try:
+                client_view = get_gspread_client()
+                if client_view:
+                    sheet_view = client_view.open("Database_Aset_Negara").sheet1
+                    records = sheet_view.get_all_records()
+                    if records:
+                        st.dataframe(pd.DataFrame(records), use_container_width=True)
+                    else:
+                        st.write("Database di Google Sheets masih kosong (baru ada baris judul).")
+            except Exception as e_view:
+                st.write(f"Belum bisa memuat database: {e_view}")
+
+        st.markdown("---")
+
+        # 3. TOMBOL DOWNLOAD EXCEL & CSV (CANVA READY)
+        st.subheader("📥 Unduh File untuk Laporan Manual & Canva")
+        col_dl1, col_dl2 = st.columns(2)
+        
+        with col_dl1:
+            # Download CSV (Canva Bulk Create)
+            csv_data = df_export.to_csv(index=False).encode('utf-8')
             st.download_button(
-                label="📥 Download CSV (Canva Ready)",
-                data=csv,
+                label="📥 Unduh Format CSV (Canva Bulk Create Ready)",
+                data=csv_data,
                 file_name="laporan_aset_canva.csv",
                 mime="text/csv",
+                use_container_width=True
+            )
+            
+        with col_dl2:
+            # Download Excel (.xlsx) untuk arsip kantor
+            from io import BytesIO
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df_export.to_excel(writer, index=False, sheet_name='Data Appraisal')
+            excel_data = output.getvalue()
+            
+            st.download_button(
+                label="📥 Unduh Format Excel (.xlsx) untuk Arsip Kantor",
+                data=excel_data,
+                file_name="laporan_aset_appraisal.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
             )
