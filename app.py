@@ -32,15 +32,13 @@ with col1:
     )
     koordinat_lat = st.number_input(
         "🌐 Latitude (Garis Lintang):", 
-        value=None, 
-        format="%.6f", 
-        help="Masukkan koordinat Latitude, contoh: -7.528660"
+        value="", 
+        placeholder="Contoh: -7.xxxxxx"
     )
     koordinat_lng = st.number_input(
         "🌐 Longitude (Garis Bujur):", 
-        value=None, 
-        format="%.6f", 
-        help="Masukkan koordinat Longitude, contoh: 112.555553"
+        value="", 
+        placeholder="Contoh: 112.xxxxxx"
     )
 
 with col2:
