@@ -1,4 +1,74 @@
-# PROMPT MASTER: GABUNGAN METRIK SPESIFIK, LINK RUTE, ANTI-BIAS, & UI KOTAK
+import streamlit as st
+import google.generativeai as genai
+
+# 1. KONFIGURASI HALAMAN WEBSITE
+st.set_page_config(
+    page_title="Sistem Analisis Aset Negara",
+    page_icon="🏢",
+    layout="wide"
+)
+
+st.title("🏢 Sistem Analisis & Appraisal Aset Properti")
+st.write("Aplikasi internal untuk generate laporan analisis lingkungan, estimasi harga, dan fasilitas aset secara mendalam.")
+st.markdown("---")
+
+# 2. SISTEM KEAMANAN (PIN RAHASIA)
+pin_rahasia = st.sidebar.text_input("🔐 Masukkan PIN Internal:", type="password")
+
+if pin_rahasia != "ASET123":
+    st.warning("⚠️ Silakan masukkan PIN Internal yang benar di menu sebelah kiri untuk membuka form analisis.")
+    st.stop()
+
+st.sidebar.success("✅ PIN Benar! Akses diberikan.")
+
+# 3. FORM INPUT BERSIH (TANPA CONTOH PRIBADI)
+col1, col2 = st.columns(2)
+
+with col1:
+    alamat_aset = st.text_input(
+        "📍 Alamat Lengkap Aset:", 
+        value="", 
+        placeholder="Contoh: Jl. Ahmad Yani No. 123, Surabaya"
+    )
+    koordinat_lat = st.number_input(
+        "🌐 Latitude (Garis Lintang):", 
+        value=None, 
+        format="%.6f", 
+        help="Masukkan koordinat Latitude, contoh: -7.250445"
+    )
+    koordinat_lng = st.number_input(
+        "🌐 Longitude (Garis Bujur):", 
+        value=None, 
+        format="%.6f", 
+        help="Masukkan koordinat Longitude, contoh: 112.768845"
+    )
+
+with col2:
+    informasi_tambahan = st.text_area(
+        "📝 Catatan Kondisi Lapangan & Informasi Tambahan:", 
+        value="", 
+        placeholder="Contoh: Tanah kosong, kondisi berumput, berada di tepi jalan utama...",
+        height=130
+    )
+
+st.markdown("---")
+
+# 4. TOMBOL EKSEKUSI
+if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_container_width=True):
+    # Validasi input tidak boleh kosong
+    if not alamat_aset or koordinat_lat is None or koordinat_lng is None:
+        st.error("⚠️ Mohon lengkapi Alamat Lengkap dan Koordinat (Latitude & Longitude) terlebih dahulu!")
+        st.stop()
+        
+    with st.spinner("⏳ AI sedang melakukan self-correction, kalkulasi harga pasar, dan menyusun laporan terstruktur..."):
+        
+        try:
+            genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+        except:
+            st.error("❌ API Key belum dipasang di pengaturan rahasia Streamlit Cloud.")
+            st.stop()
+
+        # PROMPT MASTER: GABUNGAN METRIK SPESIFIK, LINK RUTE, ANTI-BIAS, & UI KOTAK
         prompt = f"""
         JANGAN mengulangi instruksi atau input data ini dalam hasil laporanmu. Langsung mulai tulis laporan dari judul bab pertama.
 
@@ -76,3 +146,52 @@
         ### 📝 KESIMPULAN AKHIR
         (Berikan 1 paragraf kesimpulan eksekutif yang tegas, padat, dan langsung pada kesimpulan strategis untuk pimpinan mengenai keputusan pemanfaatan/lelang aset ini).
         """
+
+        # MESIN AUTO-RETRY ANTI GAGAL
+        semua_model = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        model_kandidat = [m for m in semua_model if not any(x in m.lower() for x in ['tts', 'audio', 'vision', 'embedding', 'aqa', 'imagen'])]
+        
+        response = None
+        for nama_model in model_kandidat:
+            try:
+                model = genai.GenerativeModel(nama_model)
+                response = model.generate_content(prompt)
+                break 
+            except:
+                continue
+
+        # 5. MENAMPILKAN HASIL DENGAN UI KOTAK-KOTAK (BOX CONTAINERS)
+        if response and response.text:
+            st.success("✅ Laporan Berhasil Disusun!")
+            
+            # --- KOTAK 1: IDENTITAS ASET & LINK GPS (Dibuat native dengan Python) ---
+            with st.container(border=True):
+                st.markdown("### 📌 IDENTITAS & LOKASI ASET")
+                st.write(f"**Alamat Lengkap:** {alamat_aset}")
+                
+                st.write("**Koordinat GPS (Klik ikon di kanan kotak untuk copas):**")
+                # Fitur rahasia: st.code punya tombol copas otomatis!
+                st.code(f"{koordinat_lat}, {koordinat_lng}", language="text")
+                
+                # Membuat tombol link asli yang bisa diklik
+                col_map, col_earth = st.columns(2)
+                url_maps = f"https://www.google.com/maps?q={koordinat_lat},{koordinat_lng}"
+                url_earth = f"https://earth.google.com/web/search/{koordinat_lat},{koordinat_lng}"
+                
+                with col_map:
+                    st.link_button("🗺️ Buka di Google Maps", url_maps, use_container_width=True)
+                with col_earth:
+                    st.link_button("🌍 Buka di Google Earth", url_earth, use_container_width=True)
+
+            # --- KOTAK 2 SAMPAI SELESAI: HASIL ANALISIS AI ---
+            # Python memotong laporan AI berdasarkan kata sandi "---SECTION---"
+            bagian_laporan = response.text.split("---SECTION---")
+            
+            for bagian in bagian_laporan:
+                teks_bersih = bagian.strip()
+                if teks_bersih: # Pastikan kotaknya tidak kosong
+                    with st.container(border=True):
+                        st.markdown(teks_bersih)
+                        
+        else:
+            st.error("❌ Gagal memproses laporan. Silakan coba lagi.")
