@@ -109,10 +109,10 @@ with tab1:
                 kabupaten_asli = "Kabupaten setempat"
                 info_validasi_peta = f"Koordinat GPS: {koordinat_lat}, {koordinat_lng} (Gunakan pemetaan internal AI)"
 
-            # LANGKAH 2: PROMPT MASTER
+            # =====================================================================
+            # LANGKAH 2: PROMPT MASTER YANG DI-GEMBOK ANTI BACIN / BAHASA INGGRIS
+            # =====================================================================
             prompt = f"""
-            TULIS LANGSUNG LAPORAN DI BAWAH INI. JANGAN MENULIS PROSES BERPIKIR (THOUGHTS), JANGAN MENGULANG INSTRUKSI, DAN JANGAN MENULIS TEKS BAHASA INGGRIS APAPUN DI LUAR LAPORAN. LANGSUNG MULAI DARI JUDUL BAB PERTAMA YAITU "### 💰 ESTIMASI HARGA PASAR (INDIKATIF)".
-
             Kamu adalah Penilai Aset Negara (Appraiser) DJKN/KPKNL. Tugasmu membuat laporan analisis aset properti yang LUGAS, REALISTIS, DAN MEMBUMI (hindari bahasa akademis tinggi, ganti dengan bahasa sehari-hari yang profesional).
 
             DATA TARGET ASET:
@@ -221,18 +221,28 @@ with tab1:
             3. **Rekomendasi Skema Optimalisasi:** Berdasarkan karakteristik tersebut, apa skema pengelolaan yang paling direkomendasikan? (Secara tegas pilih skemanya: **Penjualan Lelang**, **Penyewaan Komersial (Sewa)**, atau **Kerja Sama Pemanfaatan (KSP)**).
             
             Hindari bahasa yang terlalu berbunga-bunga, langsung pada kesimpulan strategis yang meyakinkan pimpinan.)
+
+            PERINGATAN KERAS: JANGAN TULIS PROSES BERPIKIRMU! JANGAN TULIS TEKS BAHASA INGGRIS APA PUN!
+            LANGSUNG KELUARKAN LAPORAN DALAM BAHASA INDONESIA SEKARANG JUGA, DIAWALI PERSIS DENGAN TEKS:
+            ### 💰 ESTIMASI HARGA PASAR (INDIKATIF)
             """
 
-            # EXECUTE GEMINI
-            semua_model = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-            model_kandidat = [m for m in semua_model if not any(x in m.lower() for x in ['tts', 'audio', 'vision', 'embedding', 'aqa', 'imagen'])]
+            # EXECUTE GEMINI DENGAN SUHU DINGIN (PATUH FORMAT) & PRIORITAS MODEL BARU
+            config_patuh = genai.types.GenerationConfig(
+                temperature=0.2, # Suhu 0.2 bikin AI tidak berhalusinasi dan patuh pada aturan ---SECTION---
+            )
+            
+            # Kita prioritaskan model yang paling pintar mematuhi format Markdown
+            model_kandidat = ['models/gemini-1.5-flash', 'models/gemini-1.5-pro', 'models/gemini-1.0-pro']
             
             response = None
             for nama_model in model_kandidat:
                 try:
-                    model = genai.GenerativeModel(nama_model)
+                    model = genai.GenerativeModel(model_name=nama_model, generation_config=config_patuh)
                     response = model.generate_content(prompt)
-                    break 
+                    # Pastikan respons valid dan mengandung pemisah bab kita
+                    if response and response.text and "---SECTION---" in response.text:
+                        break 
                 except:
                     continue
 
