@@ -51,14 +51,6 @@ with col2:
         height=130
     )
 
-with col2:
-    informasi_tambahan = st.text_area(
-        "📝 Catatan Kondisi Lapangan & Informasi Tambahan (Opsional):", 
-        value="", 
-        placeholder="Contoh: Berada di pinggir jalan raya, bentuk tanah ngantong, ada sisa bangunan...",
-        height=130
-    )
-
 st.markdown("---")
 
 # 4. TOMBOL EKSEKUSI
