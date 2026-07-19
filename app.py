@@ -66,6 +66,9 @@ if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_cont
            - Wajib menyertakan estimasi JARAK dalam Kilometer (km).
            - Wajib membedakan waktu tempuh antara SEPEDA MOTOR dan MOBIL dengan memperhitungkan kondisi kemacetan riil di kawasan tersebut.
            - Format wajib per poin: `- [Nama Fasilitas] (~[X] km | Motor: ~[X] menit, Mobil: ~[Y] menit)`
+        3. **JANGAN MENEBAK JARAK:** Karena kamu adalah AI, berikan keterangan "Estimasi Jarak". Selain itu, sebagai gantinya, berikan tautan "Lihat Rute" yang mengarah ke Google Maps.
+        4. **FORMAT TAUTAN:** Untuk setiap fasilitas, tuliskan dalam format ini: 
+           - [Nama Fasilitas] - [Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA_FASILITAS_DISINI])
 
         SUSUN LAPORAN DENGAN FORMAT HEADER DAN STRUKTUR BERIKUT:
 
@@ -87,16 +90,21 @@ if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_cont
 
         * **A. Fasilitas Pendidikan:**
           (Sebutkan SD, SMP, SMA, atau Kampus terdekat beserta metrik jarak dan waktunya)
+          (format: - Nama Sekolah - [Lihat Rute](link_di_sini))
         * **B. Pusat Perbelanjaan & Niaga:**
           (Sebutkan Pasar Tradisional, Mall, Supermarket, atau Pusat Grosir terdekat)
+          (format: - Nama Pasar atau Pusat Niaga - [Lihat Rute](link_di_sini))
         * **C. Fasilitas Kesehatan:**
           (Sebutkan RSUD, RS Swasta, Klinik, atau Puskesmas terdekat)
+          (format: - Nama Rumah Sakit atau Fasilitas Kesehatan - [Lihat Rute](link_di_sini))
         * **D. Akses Tol & Simpul Transportasi:**
           (Sebutkan Gerbang Tol, Terminal, atau Stasiun terdekat)
+          (format: - Nama Gerbang Tol atau Simpul Transportasi - [Lihat Rute](link_di_sini))
         * **E. Tempat Ibadah:**
           (Sebutkan Masjid, Gereja, atau tempat ibadah utama terdekat)
         * **F. Area Publik & Destinasi Wisata:**
           (Sebutkan Alun-alun, taman kota, atau pusat rekreasi/wisata terdekat)
+          (format: - Nama Wisata - [Lihat Rute](link_di_sini))
 
         **4. ANALISIS KRITIS POTENSI & RISIKOS (SWOT Singkat)**
         - **Kekuatan & Nilai Jual Utama (Strengths):** (Sebutkan 2-3 keunggulan mutlak aset ini)
