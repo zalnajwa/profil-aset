@@ -21,33 +21,33 @@ if pin_rahasia != "ASET123":
 
 st.sidebar.success("✅ PIN Benar! Akses diberikan.")
 
-# 3. FORM INPUT BERSIH (TANPA CONTOH PRIBADI)
+# 3. FORM INPUT BERSIH
 col1, col2 = st.columns(2)
 
 with col1:
     alamat_aset = st.text_input(
         "📍 Alamat Lengkap Aset:", 
         value="", 
-        placeholder="Contoh: Jl. Ahmad Yani No. 123, Surabaya"
+        placeholder="Contoh: Ds. Awang-awang, Kec. Mojosari, Kab. Mojokerto"
     )
     koordinat_lat = st.number_input(
         "🌐 Latitude (Garis Lintang):", 
         value=None, 
         format="%.6f", 
-        help="Masukkan koordinat Latitude, contoh: -7.250445"
+        help="Masukkan koordinat Latitude, contoh: -7.528660"
     )
     koordinat_lng = st.number_input(
         "🌐 Longitude (Garis Bujur):", 
         value=None, 
         format="%.6f", 
-        help="Masukkan koordinat Longitude, contoh: 112.768845"
+        help="Masukkan koordinat Longitude, contoh: 112.555553"
     )
 
 with col2:
     informasi_tambahan = st.text_area(
-        "📝 Catatan Kondisi Lapangan & Informasi Tambahan:", 
+        "📝 Catatan Kondisi Lapangan & Informasi Tambahan (Opsional):", 
         value="", 
-        placeholder="Contoh: Tanah kosong, kondisi berumput, berada di tepi jalan utama...",
+        placeholder="Contoh: Berada di pinggir jalan raya, bentuk tanah ngantong, ada sisa bangunan...",
         height=130
     )
 
@@ -55,12 +55,11 @@ st.markdown("---")
 
 # 4. TOMBOL EKSEKUSI
 if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_container_width=True):
-    # Validasi input tidak boleh kosong
     if not alamat_aset or koordinat_lat is None or koordinat_lng is None:
         st.error("⚠️ Mohon lengkapi Alamat Lengkap dan Koordinat (Latitude & Longitude) terlebih dahulu!")
         st.stop()
         
-    with st.spinner("⏳ AI sedang melakukan self-correction, kalkulasi harga pasar, dan menyusun laporan terstruktur..."):
+    with st.spinner("⏳ Memindai koordinat, menganalisis jalan terdekat, dan menyusun laporan..."):
         
         try:
             genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
@@ -68,83 +67,73 @@ if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_cont
             st.error("❌ API Key belum dipasang di pengaturan rahasia Streamlit Cloud.")
             st.stop()
 
-        # PROMPT MASTER: GABUNGAN METRIK SPESIFIK, LINK RUTE, ANTI-BIAS, & UI KOTAK
+        # PROMPT MASTER WITH DYNAMIC CONCLUSION (POTENSI + ALASAN + SKEMA)
         prompt = f"""
-        JANGAN mengulangi instruksi atau input data ini dalam hasil laporanmu. Langsung mulai tulis laporan dari judul bab pertama.
+        TULIS LANGSUNG LAPORAN DI BAWAH INI. JANGAN MENULIS PROSES BERPIKIR (THOUGHTS), JANGAN MENGULANG INSTRUKSI, DAN JANGAN MENULIS TEKS BAHASA INGGRIS APAPUN DI LUAR LAPORAN. LANGSUNG MULAI DARI JUDUL BAB PERTAMA YAITU "### 💰 ESTIMASI HARGA PASAR (INDIKATIF)".
 
-        Kamu adalah seorang Penilai Aset Negara (Appraiser) dan Analis Properti Senior dari DJKN/KPKNL yang sangat berpengalaman, kritis, dan realistis. Tugasmu adalah menyusun LAPORAN HASIL ANALISIS ASET yang mendalam (deep), teknis, dan objektif berdasarkan koordinat dan data lapangan.
+        Kamu adalah Penilai Aset Negara (Appraiser) DJKN/KPKNL. Tugasmu membuat laporan analisis aset properti yang LUGAS, REALISTIS, DAN MEMBUMI (mudah dipahami pimpinan, hindari kata-kata akademis yang terlalu tinggi, ganti dengan bahasa sehari-hari yang profesional seperti 'pergeseran dari lahan pertanian menjadi permukiman, ruko, atau gudang kecil').
 
         DATA TARGET ASET:
         - Alamat/Lokasi: {alamat_aset}
         - Koordinat Titik: {koordinat_lat}, {koordinat_lng}
-        - Informasi Tambahan & Kondisi Lapangan: {informasi_tambahan}
+        - Catatan Lapangan: {informasi_tambahan if informasi_tambahan else "Tidak ada catatan khusus, analisis murni berdasarkan pemetaan koordinat."}
 
-        INSTRUKSI KRISIAL (WAJIB DIPATUHI):
-        1. **NO SUGARCOATING (JANGAN DIBAIK-BAIKIN):** Bersikaplah objektif dan brutal. Jika ada kelemahan seperti macet parah, risiko banjir, rawan konflik perbatasan lahan, polusi suara, atau posisi akses yang sulit, BEBERKAN SEJUJURNYA. Jangan gunakan bahasa marketing yang berlebihan.
-        2. **KEDALAMAN DATA FASILITAS (METRIK SPESIFIK & LINK RUTE):** 
-           - Wajib menyebutkan NAMA SPESIFIK fasilitas nyata yang ada di sekitar area tersebut berdasarkan pemetaan koordinat. JANGAN mengarang nama umum.
-           - Wajib menyertakan estimasi JARAK (km) dan WAKTU TEMPUH (Motor vs Mobil) dengan memperhitungkan kemacetan riil.
-           - Karena angka jarak dari AI bersifat prediktif, tambahkan keterangan bahwa itu adalah ESTIMASI dan wajib verifikasi ulang melalui link rute.
-           - **FORMAT WAJIB PER POIN FASILITAS (Ikuti persis struktur ini):**
-             `- **[Nama Fasilitas]** (~[X] km | Motor: ~[X] menit, Mobil: ~[Y] menit) *[Estimasi AI, double check pada tautan]* - [🗺️ Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA+FASILITAS+GANTI+SPASI+DENGAN+PLUS])`
-        3. **HAPUS BIAS HUNIAN:** JANGAN berulang-ulang menekankan mengapa aset cocok atau tidak cocok untuk rumah tinggal (residensial). Evaluasilah secara luas dari sudut pandang komersial, gudang, retail, logistik, atau lelang BMN.
-        4. **FORMAT UI KOTAK-KOTAK:** Agar sistem website kami bisa menyajikan laporanmu ke dalam kotak visual terpisah, kamu WAJIB menyisipkan kata sandi ini tepat di antara setiap bab/bagian di bawah ini:
+        INSTRUKSI TEKNIS DAN FORMAT LAPORAN (WAJIB DIPATUHI):
+        1. BAHASA LUGAS & NYATA: Jangan mengawang-awang atau berteori. Karena koordinat sudah diberikan ({koordinat_lat}, {koordinat_lng}), identifikasi NAMA JALAN TERDEKAT yang menjadi akses ke titik tersebut. Apakah di tepi jalan raya, jalan desa, atau masuk gang.
+        2. NO SUGARCOATING: Beberkan kelemahan riil (macet, jalan sempit, rawan banjir, dll).
+        3. ANTI BIAS HUNIAN: Jangan terlalu fokus menilai cocok/tidaknya untuk rumah tinggal. Nilai potensi komersial, perdagangan, jasa, gudang, atau lelang.
+        4. PEMISAH BAB: Untuk keperluan tampilan website, WAJIB taruh kode ini tepat di antara setiap bab/bagian laporan:
            ---SECTION---
 
-        SUSUN LAPORAN DENGAN URUTAN BAB DAN STRUKTUR PERSIS SEPERTI INI:
+        SUSUN LAPORAN DENGAN URUTAN PERSIS SEPERTI INI:
 
         ### 💰 ESTIMASI HARGA PASAR (INDIKATIF)
-        - **Estimasi Harga Tanah:** Rp [X] - Rp [Y] per m² (Berikan penjelasan analisis singkat mengapa rentang harga pasar ini logis untuk kawasan tersebut).
-        - **Estimasi Harga Bangunan:** Rp [X] - Rp [Y] per m² (Jika ada bangunan/puing, jelaskan estimasi nilainya atau biaya bangun standar di area ini).
+        - **Estimasi Harga Tanah:** Rp [X] - Rp [Y] per m² (Penjelasan singkat pasaran harga tanah di sekitar lokasi/kecamatan ini).
+        - **Estimasi Harga Bangunan:** Rp [X] - Rp [Y] per m² (Jika ada bangunan/puing jelaskan, jika tanah kosong jelaskan biaya bangun standar per m² di area ini).
         - *Disclaimer Resmi:* Angka di atas merupakan estimasi awal berbasis data analitis AI untuk gambaran kasar, bukan merupakan nilai limit lelang atau nilai appraisal resmi. Diperlukan survei dan penilaian fisik langsung di lapangan.
 
         ---SECTION---
 
         ### 🏘️ KARAKTERISTIK DAN DINAMIKA KAWASAN
-        - **Klasifikasi & Tata Ruang Kawasan:** (Jelaskan secara spesifik peruntukan kawasan ini apakah koridor komersial, pemukiman padat, industri, atau campuran. Sebutkan karakter lingkungan sekitarnya).
-        - **Penggerak Ekonomi Lokal:** (Jelaskan roda ekonomi riil di area ini, apa jenis usaha yang potensial hidup dan apa yang mati).
-        - **Analisis Lingkungan & Sosial:** (Jelaskan kondisi keamanan, interaksi dengan warga sekitar, serta identifikasi potensi gangguan lingkungan seperti kebisingan lalu lintas, getaran, atau polusi).
+        - **Klasifikasi & Tata Ruang Kawasan:** (Jelaskan dengan bahasa lugas apakah area ini kawasan perdagangan, permukiman, industri, atau campuran).
+        - **Penggerak Ekonomi Lokal:** (Bisnis atau aktivitas ekonomi apa yang ramai dan hidup di area sekitar koordinat ini).
+        - **Analisis Lingkungan & Sosial:** (Kondisi keamanan dan lingkungan sekitarnya).
 
         ---SECTION---
 
         ### 🛣️ EVALUASI AKSESIBILITAS DAN KONEKTIVITAS
-        - **Kondisi Akses Mikro (Jalan Depan Aset):** (Jelaskan nama jalan, perkiraan lebar jalan dalam meter, kapasitas muatan kendaraan apakah bisa masuk truk tronton/kontainer, serta kondisi fisik perkerasan jalan).
-        - **Konektivitas Makro & Titik Macet:** (Jalur penghubung ke jalan arteri/nasional. WAJIB jelaskan titik-titik kemacetan lokal yang sering terjadi di sekitar aset pada jam sibuk yang dapat mengurangi nilai jual/sewa aset).
+        - **Kondisi Akses Mikro (Jalan Depan Aset):** (BERDASARKAN KOORDINAT {koordinat_lat}, {koordinat_lng}, sebutkan nama jalan terdekat/depan aset. Jelaskan perkiraan lebarnya dalam meter, apakah truk/kendaraan roda empat bisa simpangan, dan kondisi jalannya).
+        - **Konektivitas Makro & Titik Macet:** (Jalur penghubung ke jalan utama/arteri serta titik macet di jam sibuk).
 
         ---SECTION---
 
         ### 📍 PEMETAAN FASILITAS TERDEKAT (POI)
-        (Lacak fasilitas nyata di sekitar koordinat aset. Sajikan minimal 3-4 tempat per kategori dengan FORMAT WAJIB yang menyertakan estimasi jarak, waktu motor vs mobil, warning double check, dan link Lihat Rute):
-
-        * **A. Fasilitas Pendidikan:**
-          (Sebutkan SD, SMP, SMA, atau Kampus terdekat menggunakan format wajib di atas)
-        * **B. Pusat Perbelanjaan & Niaga:**
-          (Sebutkan Pasar Tradisional, Mall, Supermarket, atau Pusat Grosir terdekat menggunakan format wajib di atas)
-        * **C. Fasilitas Kesehatan:**
-          (Sebutkan RSUD, RS Swasta, Klinik, atau Puskesmas terdekat menggunakan format wajib di atas)
-        * **D. Akses Tol & Simpul Transportasi:**
-          (Sebutkan Gerbang Tol, Terminal, atau Stasiun terdekat menggunakan format wajib di atas)
-        * **E. Tempat Ibadah:**
-          (Sebutkan Masjid, Gereja, atau tempat ibadah utama terdekat menggunakan format wajib di atas)
-        * **F. Area Publik & Destinasi Wisata:**
-          (Sebutkan Alun-alun, taman kota, atau pusat rekreasi/wisata terdekat menggunakan format wajib di atas)
+        (Sebutkan nama fasilitas nyata di sekitar koordinat. JANGAN MENEBAK JARAK ANGKA TANPA PERINGATAN. Gunakan format persis ini):
+        - **[Nama Fasilitas]** (~[X] km | Motor: ~[X] menit, Mobil: ~[Y] menit) *[Estimasi AI, double check pada tautan]* - [🗺️ Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA+FASILITAS+GANTI+SPASI+DENGAN+PLUS])
+        
+        (Kelompokkan menjadi: A. Pendidikan, B. Perbelanjaan & Niaga, C. Fasilitas Kesehatan, D. Akses Tol & Transportasi, E. Tempat Ibadah, F. Area Publik).
 
         ---SECTION---
 
         ### ⚖️ ANALISIS KRITIS POTENSI & RISIKO (SWOT SINGKAT)
-        - **Kekuatan & Nilai Jual Utama (Strengths):** (Sebutkan 2-3 keunggulan mutlak aset ini).
-        - **Kelemahan & Risiko Aset (Weaknesses & Risks):** (Sebutkan 2-3 kelemahan kritis secara jujur tanpa sugarcoating, misalnya biaya pembersihan puing, kemacetan akses depan, atau risiko lingkungan lainnya).
+        - **Kekuatan & Nilai Jual Utama (Strengths):** (2-3 keunggulan aset yang nyata dan logis).
+        - **Kelemahan & Risiko Aset (Weaknesses & Risks):** (2-3 kelemahan kritis secara jujur tanpa sugarcoating).
 
         ---SECTION---
 
         ### 🎯 REKOMENDASI PEMANFAATAN OPTIMAL (HIGHEST AND BEST USE)
-        - **Opsi Pemanfaatan PALING MUNGKIN (Top 2-3 Opsi):** (Berikan rekomendasi peruntukan paling logis dan menguntungkan selain hunian, misal untuk dilelang komersial, disewakan untuk gudang/retail, atau dipecah, beserta alasan logisnya).
-        - **Opsi Pemanfaatan PALING TIDAK MUNGKIN (1 Opsi):** (Sebutkan 1 opsi pemanfaatan yang paling tidak cocok/berguna untuk aset ini beserta alasannya).
+        - **Opsi Pemanfaatan PALING MUNGKIN (Top 2-3 Opsi):** (Rekomendasi selain hunian, misal untuk perdagangan, jasa, ruko, atau gudang skala kecil beserta alasannya).
+        - **Opsi Pemanfaatan PALING TIDAK MUNGKIN (1 Opsi):** (1 opsi yang tidak cocok beserta alasan logisnya).
 
         ---SECTION---
 
         ### 📝 KESIMPULAN AKHIR
-        (Berikan 1 paragraf kesimpulan eksekutif yang tegas, padat, dan langsung pada kesimpulan strategis untuk pimpinan mengenai keputusan pemanfaatan/lelang aset ini).
+        (Buat 1 paragraf kesimpulan eksekutif yang lugas, padat, dan langsung pada intinya. Wajib merangkum 3 hal berikut dalam alur yang natural:
+        1. **Potensi:** Secara keseluruhan, aset ini paling potensial dikembangkan sebagai apa? (misal: properti komersial, pergudangan, retail, jasa, dll).
+        2. **Alasan Potensi:** Mengapa potensial? (Sebutkan keunggulan utama aset ini berdasarkan fakta analisis di atas, APA PUN ALASANNYA yang paling logis—misalnya karena posisinya di koridor aktif, dekat simpul tol, visibilitas tinggi, pertumbuhan kawasan yang pesat, atau akses yang mendukung).
+        3. **Rekomendasi Skema Optimalisasi:** Berdasarkan karakteristik tersebut, apa skema pengelolaan yang paling direkomendasikan untuk negara/pemilik? (Secara tegas pilih dan sebutkan skemanya, misalnya: dioptimalkan melalui skema **Penjualan Lelang**, **Penyewaan Komersial (Sewa)**, atau **Kerja Sama Pemanfaatan (KSP)**).
+        
+        Hindari bahasa yang terlalu berbunga-bunga, langsung pada kesimpulan strategis yang meyakinkan pimpinan.)
         """
 
         # MESIN AUTO-RETRY ANTI GAGAL
@@ -160,23 +149,22 @@ if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_cont
             except:
                 continue
 
-        # 5. MENAMPILKAN HASIL DENGAN UI KOTAK-KOTAK (BOX CONTAINERS)
+        # 5. MENAMPILKAN HASIL DENGAN UI KOTAK-KOTAK
         if response and response.text:
             st.success("✅ Laporan Berhasil Disusun!")
             
-            # --- KOTAK 1: IDENTITAS ASET & LINK GPS (Dibuat native dengan Python) ---
+            # --- KOTAK 1: IDENTITAS & LINK GPS YANG DIPERBAIKI ---
             with st.container(border=True):
                 st.markdown("### 📌 IDENTITAS & LOKASI ASET")
                 st.write(f"**Alamat Lengkap:** {alamat_aset}")
                 
                 st.write("**Koordinat GPS (Klik ikon di kanan kotak untuk copas):**")
-                # Fitur rahasia: st.code punya tombol copas otomatis!
                 st.code(f"{koordinat_lat}, {koordinat_lng}", language="text")
                 
-                # Membuat tombol link asli yang bisa diklik
+                # Link Google Earth DIPERBAIKI agar langsung nge-zoom ke koordinat
                 col_map, col_earth = st.columns(2)
                 url_maps = f"https://www.google.com/maps?q={koordinat_lat},{koordinat_lng}"
-                url_earth = f"https://earth.google.com/web/search/{koordinat_lat},{koordinat_lng}"
+                url_earth = f"https://earth.google.com/web/@{koordinat_lat},{koordinat_lng},1000a,800d,35y,0h,0t,0r"
                 
                 with col_map:
                     st.link_button("🗺️ Buka di Google Maps", url_maps, use_container_width=True)
@@ -184,12 +172,16 @@ if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_cont
                     st.link_button("🌍 Buka di Google Earth", url_earth, use_container_width=True)
 
             # --- KOTAK 2 SAMPAI SELESAI: HASIL ANALISIS AI ---
-            # Python memotong laporan AI berdasarkan kata sandi "---SECTION---"
-            bagian_laporan = response.text.split("---SECTION---")
+            # Membersihkan sisa-sisa kebocoran jika AI masih bandel
+            teks_laporan = response.text
+            if "### 💰 ESTIMASI HARGA PASAR" in teks_laporan:
+                teks_laporan = "### 💰 ESTIMASI HARGA PASAR" + teks_laporan.split("### 💰 ESTIMASI HARGA PASAR")[1]
+
+            bagian_laporan = teks_laporan.split("---SECTION---")
             
             for bagian in bagian_laporan:
                 teks_bersih = bagian.strip()
-                if teks_bersih: # Pastikan kotaknya tidak kosong
+                if teks_bersih and not teks_bersih.startswith("```"):
                     with st.container(border=True):
                         st.markdown(teks_bersih)
                         
