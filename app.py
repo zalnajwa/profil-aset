@@ -32,15 +32,23 @@ with col1:
     )
     koordinat_lat = st.number_input(
         "🌐 Latitude (Garis Lintang):", 
-        value="", 
+        value=None,  # <-- HARUS None, BUKAN ""
         format="%.6f",
         placeholder="Contoh: -7.xxxxxx"
     )
     koordinat_lng = st.number_input(
         "🌐 Longitude (Garis Bujur):", 
-        value="", 
+        value=None,  # <-- HARUS None, BUKAN ""
         format="%.6f",
         placeholder="Contoh: 112.xxxxxx"
+    )
+
+with col2:
+    informasi_tambahan = st.text_area(
+        "📝 Catatan Kondisi Lapangan & Informasi Tambahan (Opsional):", 
+        value="", 
+        placeholder="Contoh: Berada di pinggir jalan raya, bentuk tanah ngantong, ada sisa bangunan...",
+        height=130
     )
 
 with col2:
