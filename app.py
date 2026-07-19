@@ -1,6 +1,6 @@
 import streamlit as st
 import google.generativeai as genai
-from geopy.geocoders import Nominatim  # <-- ALAT PELACAK JALAN SATELIT
+from geopy.geocoders import Nominatim
 
 # 1. KONFIGURASI HALAMAN WEBSITE
 st.set_page_config(
@@ -22,7 +22,7 @@ if pin_rahasia != "ASET123":
 
 st.sidebar.success("✅ PIN Benar! Akses diberikan.")
 
-# 3. FORM INPUT BERSIH (SUDAH DIPERBAIKI VALUE=NONE)
+# 3. FORM INPUT BERSIH
 col1, col2 = st.columns(2)
 
 with col1:
@@ -60,7 +60,7 @@ if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_cont
         st.error("⚠️ Mohon lengkapi Alamat Lengkap dan Koordinat (Latitude & Longitude) terlebih dahulu!")
         st.stop()
         
-    with st.spinner("⏳ Memindai koordinat satelit, melacak nama jalan depan aset, dan menyusun laporan..."):
+    with st.spinner("⏳ Memindai koordinat satelit, melacak nama jalan & wilayah, serta menyusun tabel analisis..."):
         
         try:
             genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
@@ -69,14 +69,13 @@ if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_cont
             st.stop()
 
         # =====================================================================
-        # LANGKAH 1: PYTHON MELACAK NAMA JALAN DARI KOORDINAT (REVERSE GEOCODING)
+        # LANGKAH 1: PYTHON MELACAK NAMA JALAN & WILAYAH DARI SATELIT
         # =====================================================================
         try:
-            geolocator = Nominatim(user_agent="appraisal_aset_djkn_app", timeout=10)
+            geolocator = Nominatim(user_agent="appraisal_aset_djkn_pro", timeout=10)
             lokasi_nyata = geolocator.reverse(f"{koordinat_lat}, {koordinat_lng}", exactly_one=True)
             data_peta = lokasi_nyata.raw['address']
             
-            # Mengambil nama jalan asli, kecamatan, kabupaten dari data satelit
             nama_jalan_asli = data_peta.get('road', data_peta.get('pedestrian', data_peta.get('suburb', 'Jalan Utama/Lokal di koordinat ini')))
             kecamatan_asli = data_peta.get('suburb', data_peta.get('city_district', data_peta.get('village', 'Kecamatan setempat')))
             kabupaten_asli = data_peta.get('city', data_peta.get('county', 'Kabupaten/Kota setempat'))
@@ -84,28 +83,30 @@ if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_cont
             info_validasi_peta = f"Jalan Depan Aset: '{nama_jalan_asli}' | Wilayah: {kecamatan_asli}, {kabupaten_asli}"
         except Exception as e:
             nama_jalan_asli = "Jalan Raya/Lokal di koordinat ini"
+            kecamatan_asli = "Kecamatan setempat"
+            kabupaten_asli = "Kabupaten setempat"
             info_validasi_peta = f"Koordinat GPS: {koordinat_lat}, {koordinat_lng} (Gunakan pemetaan internal AI)"
 
         # =====================================================================
-        # LANGKAH 2: DATA NAMA JALAN ASLI DISUAPKAN KE DALAM PROMPT GEMINI
+        # LANGKAH 2: PROMPT MASTER DENGAN FULL TABEL (POI & SWOT)
         # =====================================================================
         prompt = f"""
         TULIS LANGSUNG LAPORAN DI BAWAH INI. JANGAN MENULIS PROSES BERPIKIR (THOUGHTS), JANGAN MENGULANG INSTRUKSI, DAN JANGAN MENULIS TEKS BAHASA INGGRIS APAPUN DI LUAR LAPORAN. LANGSUNG MULAI DARI JUDUL BAB PERTAMA YAITU "### 💰 ESTIMASI HARGA PASAR (INDIKATIF)".
 
-        Kamu adalah Penilai Aset Negara (Appraiser) DJKN/KPKNL. Tugasmu membuat laporan analisis aset properti yang LUGAS, REALISTIS, DAN MEMBUMI (mudah dipahami pimpinan, hindari kata-kata akademis yang terlalu tinggi, ganti dengan bahasa sehari-hari yang profesional seperti 'pergeseran dari lahan pertanian menjadi permukiman, ruko, atau gudang kecil').
+        Kamu adalah Penilai Aset Negara (Appraiser) DJKN/KPKNL. Tugasmu membuat laporan analisis aset properti yang LUGAS, REALISTIS, DAN MEMBUMI (hindari bahasa akademis tinggi, ganti dengan bahasa sehari-hari yang profesional).
 
         DATA TARGET ASET:
         - Alamat/Lokasi: {alamat_aset}
         - Koordinat Titik: {koordinat_lat}, {koordinat_lng}
-        - Catatan Lapangan: {informasi_tambahan if informasi_tambahan else "Tidak ada catatan khusus, analisis berdasarkan pemetaan koordinat."}
+        - Catatan Lapangan: {informasi_tambahan if informasi_tambahan else "Tidak ada catatan khusus."}
         
-        DATA VALIDASI SATELIT (NYATA DARI PETA - WAJIB DIJADIKAN ACUAN UTAMA):
+        DATA VALIDASI SATELIT (NYATA DARI PETA - ACUAN MUTLAK):
         - {info_validasi_peta}
 
         INSTRUKSI TEKNIS DAN FORMAT LAPORAN (WAJIB DIPATUHI):
-        1. BAHASA LUGAS & ANALISIS JALAN YANG BENAR: Karena data satelit sudah mengungkap bahwa aset berada di jalan "{nama_jalan_asli}", kamu WAJIB menganalisis aset berdasarkan kelas jalan tersebut! Jika "{nama_jalan_asli}" adalah jalan raya antar-kecamatan/arteri, JANGAN sebut ini sebagai jalan desa yang sempit! Perkirakan lebarnya secara logis (misal jalan utama 8-12 meter, bisa simpangan truk tronton/kontainer) dan jelaskan bagaimana dampak visibilitas jalan "{nama_jalan_asli}" terhadap nilai komersial aset!
-        2. NO SUGARCOATING: Beberkan kelemahan riil (macet, jalan sempit, rawan banjir, dll).
-        3. ANTI BIAS HUNIAN: Jangan terlalu fokus menilai cocok/tidaknya untuk rumah tinggal. Nilai potensi komersial, perdagangan, jasa, gudang, atau lelang.
+        1. BAHASA LUGAS & ANALISIS JALAN ASLI: Karena data satelit mengungkap aset berada di jalan "{nama_jalan_asli}", kamu WAJIB menganalisis berdasarkan kelas jalan tersebut! Perkirakan lebarnya secara logis dan jelaskan dampaknya terhadap nilai komersial aset!
+        2. ANTI HALUSINASI JARAK POI: Aset ini berada di {kecamatan_asli}, {kabupaten_asli}. JANGAN memanipulasi jarak! Jika fasilitas seperti Mall atau Rumah Sakit terdekat letaknya di pusat kota yang berjarak 15 km atau 30 km dari {kecamatan_asli}, tuliskan jujur 15 km atau 30 km! Carikan fasilitas yang BENAR-BENAR REAL di sekitar wilayah tersebut.
+        3. ANTI BIAS HUNIAN: Nilai potensi komersial, perdagangan, jasa, gudang, atau lelang.
         4. PEMISAH BAB: Untuk keperluan tampilan website, WAJIB taruh kode ini tepat di antara setiap bab/bagian laporan:
            ---SECTION---
 
@@ -132,16 +133,57 @@ if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_cont
         ---SECTION---
 
         ### 📍 PEMETAAN FASILITAS TERDEKAT (POI)
-        (Sebutkan nama fasilitas nyata di sekitar koordinat. JANGAN MENEBAK JARAK ANGKA TANPA PERINGATAN. Gunakan format persis ini):
-        - **[Nama Fasilitas]** (~[X] km | Motor: ~[X] menit, Mobil: ~[Y] menit) *[Estimasi AI, double check pada tautan]* - [🗺️ Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA+FASILITAS+GANTI+SPASI+DENGAN+PLUS])
-        
-        (Kelompokkan menjadi: A. Pendidikan, B. Perbelanjaan & Niaga, C. Fasilitas Kesehatan, D. Akses Tol & Transportasi, E. Tempat Ibadah, F. Area Publik).
+        (Wajib tampilkan MINIMAL 3 FASILITAS untuk setiap kategori dalam bentuk TABEL MARKDOWN. Ingat: Jangan manipulasi jarak! Jika jauh, tulis jauh. Gunakan format tabel 5 kolom ini untuk KETIGA-ENAM kategori):
+
+        #### A. Fasilitas Pendidikan
+        | Nama Fasilitas | Estimasi Jarak | ETA Motor | ETA Mobil | Link Rute |
+        | :--- | :---: | :---: | :---: | :---: |
+        | [Nama Sekolah/Kampus 1] | ~[X] km | ~[X] menit | ~[Y] menit | [🗺️ Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA+TEMPAT+GANTI+SPASI+PLUS]) |
+        | [Nama Sekolah/Kampus 2] | ~[X] km | ~[X] menit | ~[Y] menit | [🗺️ Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA+TEMPAT+GANTI+SPASI+PLUS]) |
+        | [Nama Sekolah/Kampus 3] | ~[X] km | ~[X] menit | ~[Y] menit | [🗺️ Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA+TEMPAT+GANTI+SPASI+PLUS]) |
+
+        #### B. Pusat Perbelanjaan & Niaga
+        | Nama Fasilitas | Estimasi Jarak | ETA Motor | ETA Mobil | Link Rute |
+        | :--- | :---: | :---: | :---: | :---: |
+        | [Nama Pasar/Mall/Supermarket 1] | ~[X] km | ~[X] menit | ~[Y] menit | [🗺️ Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA+TEMPAT+GANTI+SPASI+PLUS]) |
+        | [Nama Pasar/Mall/Supermarket 2] | ~[X] km | ~[X] menit | ~[Y] menit | [🗺️ Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA+TEMPAT+GANTI+SPASI+PLUS]) |
+        | [Nama Pasar/Mall/Supermarket 3] | ~[X] km | ~[X] menit | ~[Y] menit | [🗺️ Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA+TEMPAT+GANTI+SPASI+PLUS]) |
+
+        #### C. Fasilitas Kesehatan
+        | Nama Fasilitas | Estimasi Jarak | ETA Motor | ETA Mobil | Link Rute |
+        | :--- | :---: | :---: | :---: | :---: |
+        | [Nama RS/Puskesmas/Klinik 1] | ~[X] km | ~[X] menit | ~[Y] menit | [🗺️ Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA+TEMPAT+GANTI+SPASI+PLUS]) |
+        | [Nama RS/Puskesmas/Klinik 2] | ~[X] km | ~[X] menit | ~[Y] menit | [🗺️ Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA+TEMPAT+GANTI+SPASI+PLUS]) |
+        | [Nama RS/Puskesmas/Klinik 3] | ~[X] km | ~[X] menit | ~[Y] menit | [🗺️ Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA+TEMPAT+GANTI+SPASI+PLUS]) |
+
+        #### D. Akses Tol & Simpul Transportasi
+        | Nama Fasilitas | Estimasi Jarak | ETA Motor | ETA Mobil | Link Rute |
+        | :--- | :---: | :---: | :---: | :---: |
+        | [Nama Gerbang Tol/Terminal/Stasiun 1] | ~[X] km | ~[X] menit | ~[Y] menit | [🗺️ Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA+TEMPAT+GANTI+SPASI+PLUS]) |
+        | [Nama Gerbang Tol/Terminal/Stasiun 2] | ~[X] km | ~[X] menit | ~[Y] menit | [🗺️ Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA+TEMPAT+GANTI+SPASI+PLUS]) |
+        | [Nama Gerbang Tol/Terminal/Stasiun 3] | ~[X] km | ~[X] menit | ~[Y] menit | [🗺️ Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA+TEMPAT+GANTI+SPASI+PLUS]) |
+
+        #### E. Tempat Ibadah
+        | Nama Fasilitas | Estimasi Jarak | ETA Motor | ETA Mobil | Link Rute |
+        | :--- | :---: | :---: | :---: | :---: |
+        | [Nama Masjid/Gereja/Vihara 1] | ~[X] km | ~[X] menit | ~[Y] menit | [🗺️ Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA+TEMPAT+GANTI+SPASI+PLUS]) |
+        | [Nama Masjid/Gereja/Vihara 2] | ~[X] km | ~[X] menit | ~[Y] menit | [🗺️ Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA+TEMPAT+GANTI+SPASI+PLUS]) |
+        | [Nama Masjid/Gereja/Vihara 3] | ~[X] km | ~[X] menit | ~[Y] menit | [🗺️ Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA+TEMPAT+GANTI+SPASI+PLUS]) |
+
+        #### F. Area Publik & Destinasi Wisata
+        | Nama Fasilitas | Estimasi Jarak | ETA Motor | ETA Mobil | Link Rute |
+        | :--- | :---: | :---: | :---: | :---: |
+        | [Nama Alun-alun/Taman/Wisata 1] | ~[X] km | ~[X] menit | ~[Y] menit | [🗺️ Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA+TEMPAT+GANTI+SPASI+PLUS]) |
+        | [Nama Alun-alun/Taman/Wisata 2] | ~[X] km | ~[X] menit | ~[Y] menit | [🗺️ Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA+TEMPAT+GANTI+SPASI+PLUS]) |
+        | [Nama Alun-alun/Taman/Wisata 3] | ~[X] km | ~[X] menit | ~[Y] menit | [🗺️ Lihat Rute](https://www.google.com/maps/dir/?api=1&origin={koordinat_lat},{koordinat_lng}&destination=[NAMA+TEMPAT+GANTI+SPASI+PLUS]) |
 
         ---SECTION---
 
-        ### ⚖️ ANALISIS KRITIS POTENSI & RISIKO (SWOT SINGKAT)
-        - **Kekuatan & Nilai Jual Utama (Strengths):** (2-3 keunggulan aset yang nyata dan logis, utamakan posisi dan visibilitas di "{nama_jalan_asli}").
-        - **Kelemahan & Risiko Aset (Weaknesses & Risks):** (2-3 kelemahan kritis secara jujur tanpa sugarcoating).
+        ### ⚖️ ANALISIS KRITIS POTENSI & RISIKO (SWOT RINGKAS)
+        (Sajikan analisis SWOT dalam bentuk TABEL 2 KOLOM di bawah ini. Gunakan bullet points '•' di dalam sel agar rapi):
+        | 💪 Kekuatan & Peluang (Strengths & Opportunities) | ⚠️ Kelemahan & Risiko (Weaknesses & Threats) |
+        | :--- | :--- |
+        | • **[Poin Keunggulan 1]:** Penjelasan singkat.<br>• **[Poin Keunggulan 2]:** Penjelasan singkat.<br>• **[Poin Peluang 1]:** Penjelasan singkat.<br>• **[Poin Peluang 2]:** Penjelasan singkat. | • **[Poin Kelemahan 1]:** Penjelasan singkat jujur tanpa sugarcoating.<br>• **[Poin Kelemahan 2]:** Penjelasan singkat.<br>• **[Poin Risiko 1]:** Penjelasan risiko.<br>• **[Poin Risiko 2]:** Penjelasan risiko. |
 
         ---SECTION---
 
@@ -153,9 +195,9 @@ if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_cont
 
         ### 📝 KESIMPULAN AKHIR
         (Buat 1 paragraf kesimpulan eksekutif yang lugas, padat, dan langsung pada intinya. Wajib merangkum 3 hal berikut dalam alur yang natural:
-        1. **Potensi:** Secara keseluruhan, aset ini paling potensial dikembangkan sebagai apa? (misal: properti komersial, pergudangan, retail, jasa, dll).
-        2. **Alasan Potensi:** Mengapa potensial? (Sebutkan keunggulan utama aset ini berdasarkan fakta analisis di atas, APA PUN ALASANNYA yang paling logis—misalnya karena posisinya di "{nama_jalan_asli}" yang aktif, dekat simpul tol, visibilitas tinggi, pertumbuhan kawasan yang pesat, atau akses yang mendukung).
-        3. **Rekomendasi Skema Optimalisasi:** Berdasarkan karakteristik tersebut, apa skema pengelolaan yang paling direkomendasikan untuk negara/pemilik? (Secara tegas pilih dan sebutkan skemanya, misalnya: dioptimalkan melalui skema **Penjualan Lelang**, **Penyewaan Komersial (Sewa)**, atau **Kerja Sama Pemanfaatan (KSP)**).
+        1. **Potensi:** Secara keseluruhan, aset ini paling potensial dikembangkan sebagai apa?
+        2. **Alasan Potensi:** Mengapa potensial? (Sebutkan keunggulan utama berdasarkan fakta analisis di atas, APA PUN ALASANNYA yang logis).
+        3. **Rekomendasi Skema Optimalisasi:** Berdasarkan karakteristik tersebut, apa skema pengelolaan yang paling direkomendasikan? (Secara tegas pilih skemanya: **Penjualan Lelang**, **Penyewaan Komersial (Sewa)**, atau **Kerja Sama Pemanfaatan (KSP)**).
         
         Hindari bahasa yang terlalu berbunga-bunga, langsung pada kesimpulan strategis yang meyakinkan pimpinan.)
         """
@@ -177,7 +219,7 @@ if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_cont
         if response and response.text:
             st.success("✅ Laporan Berhasil Disusun!")
             
-            # --- KOTAK 1: IDENTITAS & LINK GPS YANG SUDAH ADA PINPOINT MERAH ---
+            # --- KOTAK 1: IDENTITAS & LINK PETA SATELIT ANTI-GAGAL ---
             with st.container(border=True):
                 st.markdown("### 📌 IDENTITAS & LOKASI ASET")
                 st.write(f"**Alamat Lengkap:** {alamat_aset}")
@@ -186,15 +228,24 @@ if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_cont
                 st.write("**Koordinat GPS (Klik ikon di kanan kotak untuk copas):**")
                 st.code(f"{koordinat_lat}, {koordinat_lng}", language="text")
                 
-                # Link Google Earth dengan gabungan /search/ (pin merah) + /@/ (zoom kamera 3D)
-                col_map, col_earth = st.columns(2)
-                url_maps = f"https://www.google.com/maps?q={koordinat_lat},{koordinat_lng}"
-                url_earth = f"https://earth.google.com/web/search/{koordinat_lat},{koordinat_lng}/@{koordinat_lat},{koordinat_lng},1000a,800d,35y,0h,0t,0r"
+                # KITA BUAT 3 TOMBOL SEJAJAR: PETA JALAN, PETA SATELIT (PIN PASTI MUNCUL), & EARTH
+                col_map, col_sat, col_earth = st.columns(3)
+                
+                # 1. Link Maps Standar (Peta Jalan + Pin)
+                url_maps = f"https://www.google.com/maps/search/?api=1&query={koordinat_lat},{koordinat_lng}"
+                
+                # 2. Link Maps Satelit (SAMA KEK EARTH, TAPI PIN MERAH 1000% PASTI NANCAP!)
+                url_satelit = f"https://www.google.com/maps/search/?api=1&query={koordinat_lat},{koordinat_lng}&basemap=satellite"
+                
+                # 3. Link Earth (Sudah ditambah simbol '%2C+' standar resmi Earth)
+                url_earth = f"https://earth.google.com/web/search/{koordinat_lat}%2C+{koordinat_lng}"
                 
                 with col_map:
-                    st.link_button("🗺️ Buka di Google Maps", url_maps, use_container_width=True)
+                    st.link_button("🗺️ Peta Jalan (Pin)", url_maps, use_container_width=True)
+                with col_sat:
+                    st.link_button("🛰️ Satelit (Pin Merah)", url_satelit, use_container_width=True)
                 with col_earth:
-                    st.link_button("🌍 Buka di Google Earth (Ada Pin Merahnya)", url_earth, use_container_width=True)
+                    st.link_button("🌍 Google Earth 3D", url_earth, use_container_width=True)
 
             # --- KOTAK 2 SAMPAI SELESAI: HASIL ANALISIS AI ---
             teks_laporan = response.text
