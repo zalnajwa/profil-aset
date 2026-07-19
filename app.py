@@ -1,6 +1,33 @@
 import streamlit as st
-import google.generativeai as genai
-from geopy.geocoders import Nominatim
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+import pandas as pd
+
+# --- KONFIGURASI KONEKSI GSPREAD ---
+def get_gspread_client():
+    try:
+        creds_dict = st.secrets["gcp_service_account"]
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict)
+        return gspread.authorize(creds)
+    except Exception as e:
+        st.error(f"Error koneksi GSheet: {e}")
+        return None
+
+# --- INISIALISASI SESSION STATE ---
+if 'buffer_laporan' not in st.session_state:
+    st.session_state.buffer_laporan = []
+
+st.set_page_config(page_title="Appraiser Dashboard", layout="wide")
+st.title("🏢 Appraiser Dashboard Pro")
+
+# --- TAB SETUP ---
+tab1, tab2, tab3 = st.tabs(["🚀 1. Generate", "📝 2. Review & Edit", "💾 3. Database"])
+
+# --- TAB 1: GENERATE ---
+with tab1:
+    st.header("Generate Laporan Baru")
+    st.write("Tempatkan kode input & AI kamu di sini.")
+    # Nanti kita akan pindahkan logic AI lama kamu ke sini
 
 # 1. KONFIGURASI HALAMAN WEBSITE
 st.set_page_config(
@@ -263,3 +290,16 @@ if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_cont
                         
         else:
             st.error("❌ Gagal memproses laporan. Silakan coba lagi.")
+
+# --- TAB 2: REVIEW & EDIT ---
+with tab2:
+    st.header("Review & Edit Laporan")
+    st.write("Data yang sudah di-generate akan muncul di sini untuk diedit.")
+
+# --- TAB 3: DATABASE ---
+with tab3:
+    st.header("Database & Export")
+    st.write("Simpan ke GSheet atau unduh CSV di sini.")
+import streamlit as st
+import google.generativeai as genai
+from geopy.geocoders import Nominatim
