@@ -164,7 +164,7 @@ if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_cont
                 # Link Google Earth DIPERBAIKI agar langsung nge-zoom ke koordinat
                 col_map, col_earth = st.columns(2)
                 url_maps = f"https://www.google.com/maps?q={koordinat_lat},{koordinat_lng}"
-                url_earth = f"https://earth.google.com/web/@{koordinat_lat},{koordinat_lng},1000a,800d,35y,0h,0t,0r"
+                url_earth = f"https://earth.google.com/web/search/{koordinat_lat},{koordinat_lng}/@{koordinat_lat},{koordinat_lng},1000a,800d,35y,0h,0t,0r"
                 
                 with col_map:
                     st.link_button("🗺️ Buka di Google Maps", url_maps, use_container_width=True)
