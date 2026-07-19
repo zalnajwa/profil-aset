@@ -283,5 +283,133 @@ with tab1:
                 hasil_ai = st.session_state.hasil_ai
                 bagian = hasil_ai.split("---SECTION---")
                 
-                # Pemetaan key yang dipastikan 100% sama dengan Tab 2
-                estimasi = bagian[0].strip() if len(bagian) > 0
+                # Pemetaan key dengan syntax yang utuh (tiap baris ada 'else ""')
+                estimasi = bagian[0].strip() if len(bagian) > 0 else ""
+                karakteristik = bagian[1].strip() if len(bagian) > 1 else ""
+                akses = bagian[2].strip() if len(bagian) > 2 else ""
+                poi = bagian[3].strip() if len(bagian) > 3 else ""
+                swot = bagian[4].strip() if len(bagian) > 4 else ""
+                rekomendasi = bagian[5].strip() if len(bagian) > 5 else ""
+                kesimpulan = bagian[6].strip() if len(bagian) > 6 else ""
+
+                st.session_state.buffer_laporan.append({
+                    "nama": nama_aset,
+                    "lat": koordinat_lat,
+                    "lng": koordinat_lng,
+                    "data": {
+                        "identitas": estimasi,
+                        "karakteristik": karakteristik,
+                        "akses": akses,
+                        "poi": poi,
+                        "swot": swot,
+                        "rekomendasi": rekomendasi,
+                        "kesimpulan": kesimpulan
+                    }
+                })
+                st.success("✅ Berhasil disimpan ke Review! Silakan buka Tab 2 (Review & Edit) di atas.")
+
+# ==========================================
+# --- TAB 2: REVIEW & EDIT ---
+# ==========================================
+with tab2:
+    st.header("📝 Review & Edit Laporan")
+    if not st.session_state.buffer_laporan:
+        st.info("Belum ada laporan di Buffer. Silakan Generate dan Pindahkan dulu dari Tab 1.")
+    else:
+        idx = st.selectbox("Pilih Aset yang Ingin Diedit:", range(len(st.session_state.buffer_laporan)), 
+                           format_func=lambda x: st.session_state.buffer_laporan[x]['nama'])
+        aset = st.session_state.buffer_laporan[idx]
+        
+        def edit_box(label, field_key, index):
+            unique_key = f"{field_key}_{index}"
+            if unique_key not in st.session_state:
+                st.session_state[unique_key] = aset['data'].get(field_key, "")
+            
+            col1, col2 = st.columns([0.9, 0.1])
+            with col1:
+                if st.session_state.get(f"is_edit_{unique_key}", False):
+                    st.session_state[unique_key] = st.text_area(label, value=st.session_state[unique_key], height=150)
+                else:
+                    st.markdown(f"**{label}**")
+                    st.write(st.session_state[unique_key])
+            with col2:
+                if not st.session_state.get(f"is_edit_{unique_key}", False):
+                    if st.button("✏️", key=f"edit_{unique_key}"):
+                        st.session_state[f"is_edit_{unique_key}"] = True
+                        st.rerun()
+                else:
+                    if st.button("✅", key=f"save_{unique_key}"):
+                        st.session_state[f"is_edit_{unique_key}"] = False
+                        st.rerun()
+            return st.session_state[unique_key]
+
+        st.subheader(f"📑 Mengedit Aset: {aset['nama']}")
+        identitas_final = edit_box("💰 Estimasi Harga & Identitas", "identitas", idx)
+        karakteristik_final = edit_box("🏘️ Karakteristik Kawasan", "karakteristik", idx)
+        akses_final = edit_box("🛣️ Evaluasi Aksesibilitas", "akses", idx)
+        poi_final = edit_box("📍 Pemetaan Fasilitas (POI)", "poi", idx)
+        swot_final = edit_box("⚖️ Analisis SWOT", "swot", idx)
+        rekomendasi_final = edit_box("🎯 Rekomendasi Optimal", "rekomendasi", idx)
+        kesimpulan_final = edit_box("📝 Kesimpulan Akhir", "kesimpulan", idx)
+
+# ==========================================
+# --- TAB 3: DATABASE & EXPORT ---
+# ==========================================
+with tab3:
+    st.header("💾 Simpan ke Database & Export")
+    
+    if not st.session_state.buffer_laporan:
+        st.info("Belum ada data laporan yang tersedia di Buffer.")
+    else:
+        if st.button("🚀 Simpan Permanen ke GSheet", type="primary"):
+            try:
+                client = get_gspread_client()
+                if client:
+                    sheet = client.open("Database_Aset_Negara").sheet1
+                    row_data = [
+                        len(sheet.get_all_values()), # ID
+                        aset['nama'],
+                        aset['lat'],
+                        aset['lng'],
+                        identitas_final,
+                        karakteristik_final,
+                        akses_final,
+                        poi_final,
+                        swot_final,
+                        rekomendasi_final,
+                        kesimpulan_final
+                    ]
+                    sheet.append_row(row_data)
+                    st.success(f"✅ Berhasil menyimpan aset '{aset['nama']}' ke Google Sheet!")
+            except Exception as e:
+                st.error(f"❌ Gagal simpan ke GSheet: {e}")
+
+        st.divider()
+        st.subheader("📥 Export Data untuk Canva Bulk Create")
+        
+        data_for_csv = []
+        for i, item in enumerate(st.session_state.buffer_laporan):
+            data_for_csv.append({
+                "Nama_Aset": item['nama'],
+                "Lat": item['lat'],
+                "Lng": item['lng'],
+                "Identitas": st.session_state.get(f"identitas_{i}", item['data']['identitas']),
+                "Karakteristik": st.session_state.get(f"karakteristik_{i}", item['data']['karakteristik']),
+                "Akses": st.session_state.get(f"akses_{i}", item['data']['akses']),
+                "POI": st.session_state.get(f"poi_{i}", item['data']['poi']),
+                "SWOT": st.session_state.get(f"swot_{i}", item['data']['swot']),
+                "Rekomendasi": st.session_state.get(f"rekomendasi_{i}", item['data']['rekomendasi']),
+                "Kesimpulan": st.session_state.get(f"kesimpulan_{i}", item['data']['kesimpulan'])
+            })
+        
+        if data_for_csv:
+            df_export = pd.DataFrame(data_for_csv)
+            csv = df_export.to_csv(index=False).encode('utf-8')
+            
+            st.download_button(
+                label="📥 Download CSV (Canva Ready)",
+                data=csv,
+                file_name="laporan_aset_canva.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
