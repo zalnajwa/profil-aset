@@ -293,13 +293,80 @@ if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_cont
 
 # --- TAB 2: REVIEW & EDIT ---
 with tab2:
-    st.header("Review & Edit Laporan")
-    st.write("Data yang sudah di-generate akan muncul di sini untuk diedit.")
+    st.header("📝 Review & Edit Laporan")
+    if not st.session_state.buffer_laporan:
+        st.info("Belum ada laporan di Buffer. Silakan Generate dan Pindahkan dulu.")
+    else:
+        # Pilih aset
+        idx = st.selectbox("Pilih Aset:", range(len(st.session_state.buffer_laporan)), 
+                           format_func=lambda x: st.session_state.buffer_laporan[x]['nama'])
+        aset = st.session_state.buffer_laporan[idx]
+        
+        # Fungsi edit box (bisa dipakai berulang kali)
+        def edit_box(label, key, content):
+            if key not in st.session_state: st.session_state[key] = content
+            
+            col1, col2 = st.columns([0.9, 0.1])
+            with col1:
+                if st.session_state.get(f"is_edit_{key}", False):
+                    st.session_state[key] = st.text_area(label, value=st.session_state[key], height=100)
+                else:
+                    st.markdown(f"**{label}**")
+                    st.write(st.session_state[key])
+            with col2:
+                if not st.session_state.get(f"is_edit_{key}", False):
+                    if st.button("✏️", key=f"edit_{key}"):
+                        st.session_state[f"is_edit_{key}"] = True
+                        st.rerun()
+                else:
+                    if st.button("✅", key=f"save_{key}"):
+                        st.session_state[f"is_edit_{key}"] = False
+                        st.rerun()
 
-# --- TAB 3: DATABASE ---
+        # Panggil edit box untuk tiap kolom (kecuali ID, Lat, Lng yang otomatis)
+        edit_box("Identitas", "identitas_edit", aset['data']['identitas'])
+        edit_box("Karakteristik", "karakteristik_edit", aset['data']['karakteristik'])
+        edit_box("Akses", "akses_edit", aset['data']['akses'])
+        edit_box("POI", "poi_edit", aset['data']['poi'])
+        edit_box("SWOT", "swot_edit", aset['data']['swot'])
+        edit_box("Rekomendasi", "rekomendasi_edit", aset['data']['rekomendasi'])
+        edit_box("Kesimpulan", "kesimpulan_edit", aset['data']['kesimpulan'])
+
+# --- TAB 3: DATABASE & EXPORT ---
 with tab3:
-    st.header("Database & Export")
-    st.write("Simpan ke GSheet atau unduh CSV di sini.")
-import streamlit as st
-import google.generativeai as genai
-from geopy.geocoders import Nominatim
+    st.header("💾 Simpan ke Database")
+    
+    if st.button("Simpan Permanen ke GSheet"):
+        try:
+            client = get_gspread_client()
+            sheet = client.open("Database_Aset_Negara").sheet1
+            
+            # Mendapatkan ID terakhir + 1
+            existing_data = sheet.get_all_values()
+            new_id = len(existing_data)  # ID sederhana
+            
+            # Menyiapkan baris data sesuai urutan kolommu:
+            # ID, Nama_Aset, Lat, Lng, Identitas, Karakteristik, Akses, POI, SWOT, Rekomendasi, Kesimpulan
+            row_data = [
+                new_id,
+                aset['nama'],
+                aset['lat'], # Pastikan saat generate di Tab 1, kamu simpan 'lat' dan 'lng' di dictionary
+                aset['lng'],
+                st.session_state['identitas_edit'],
+                st.session_state['karakteristik_edit'],
+                st.session_state['akses_edit'],
+                st.session_state['poi_edit'],
+                st.session_state['swot_edit'],
+                st.session_state['rekomendasi_edit'],
+                st.session_state['kesimpulan_edit']
+            ]
+            
+            sheet.append_row(row_data)
+            st.success(f"Berhasil simpan aset {aset['nama']} ke GSheet!")
+        except Exception as e:
+            st.error(f"Gagal simpan: {e}")
+
+    # Tombol Unduh CSV
+    if st.button("Unduh CSV untuk Canva"):
+        # Logika ambil data dari sheet atau dari session_state
+        pass
