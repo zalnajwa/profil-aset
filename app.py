@@ -2,7 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 
 # 1. KONFIGURASI HALAMAN WEBSITE
-st.set_page_content(
+st.set_page_config(
     page_title="Sistem Analisis Aset Negara",
     page_icon="🏢",
     layout="wide"
