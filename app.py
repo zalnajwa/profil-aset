@@ -239,6 +239,9 @@ if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_cont
         if response and response.text:
             st.success("✅ Laporan Berhasil Disusun!")
             
+            # SIMPAN HASIL AI KE SESSION
+            st.session_state.hasil_ai = response.text
+            
             # --- KOTAK 1: IDENTITAS & LINK PETA SATELIT ANTI-GAGAL ---
             with st.container(border=True):
                 st.markdown("### 📌 IDENTITAS & LOKASI ASET")
@@ -282,33 +285,54 @@ if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_cont
                         
         else:
             st.error("❌ Gagal memproses laporan. Silakan coba lagi.")
-
-    # TOMBOL PINDAH KE REVIEW
-    if "temp_data" in st.session_state:
-        if st.button("Simpan ke Review"):
-            st.session_state.buffer_laporan.append(st.session_state.temp_data)
-            st.success("Berhasil pindah ke Review!")
-            del st.session_state.temp_data
-            
-    # PENTING: Saat tombol "Simpan ke Review" ditekan, gunakan logic ini:
+         
+    # TOMBOL SIMPAN KE REVIEW
     if "hasil_ai" in st.session_state:
-        nama_aset = st.text_input("Beri Nama Aset:")
-        if st.button("Simpan ke Review"):
+
+    st.divider()
+
+    nama_aset = st.text_input(
+        "📝 Nama Aset",
+        key="nama_aset_review"
+    )
+    if st.button(
+        "📥 Simpan ke Review",
+        type="secondary",
+        use_container_width=True
+    ):
+
+        if not nama_aset.strip():
+            st.warning("Mohon isi Nama Aset terlebih dahulu.")
+        else:
+
+            hasil_ai = st.session_state.hasil_ai
+            
+            bagian = hasil_ai.split("---SECTION---")
+
+            estimasi = bagian[0] if len(bagian) > 0 else ""
+            karakteristik = bagian[1] if len(bagian) > 1 else ""
+            akses = bagian[2] if len(bagian) > 2 else ""
+            poi = bagian[3] if len(bagian) > 3 else ""
+            swot = bagian[4] if len(bagian) > 4 else ""
+            rekomendasi = bagian[5] if len(bagian) > 5 else ""
+            kesimpulan = bagian[6] if len(bagian) > 6 else ""
+
             st.session_state.buffer_laporan.append({
                 "nama": nama_aset,
                 "lat": koordinat_lat,
                 "lng": koordinat_lng,
                 "data": {
-                    "identitas": "Hasil identitas AI",
-                    "karakteristik": "Hasil karakteristik AI",
-                    "akses": "Hasil akses AI",
-                    "poi": "Hasil POI AI",
-                    "swot": "Hasil SWOT AI",
-                    "rekomendasi": "Hasil Rekomendasi AI",
-                    "kesimpulan": "Hasil Kesimpulan AI"
+                    "estimasi harga": estimasi,
+                    "karakteristik": karakteristik,
+                    "akses": akses,
+                    "poi": poi,
+                    "swot": swot,
+                    "rekomendasi": rekomendasi,
+                    "kesimpulan": kesimpulan
                 }
             })
-            st.success("Berhasil Menyimpan ke Review!")
+
+            st.success("✅ Berhasil disimpan ke Review!")
 
 # --- TAB 2: REVIEW & EDIT ---
 with tab2:
@@ -364,7 +388,7 @@ with tab3:
     st.header("💾 Simpan ke Database")
     
     # Tombol Simpan ke GSheet
-    if st.button("Simpan Permanen ke GSheet"):
+    if st.session_state.buffer_laporan and st.button("Simpan Permanen ke GSheet"):
         try:
             client = get_gspread_client()
             sheet = client.open("Database_Aset_Negara").sheet1
@@ -409,8 +433,13 @@ with tab3:
             "Kesimpulan": st.session_state.get(f"kesimpulan_{i}", item['data']['kesimpulan'])
         })
     
-    df_export = pd.DataFrame(data_for_csv)
-    csv = df_export.to_csv(index=False).encode('utf-8')
+    if data_for_csv:
+        df_export = pd.DataFrame(data_for_csv)
+        csv = df_export.to_csv(index=False).encode('utf-8')
+
+    )
+else:
+    st.info("Belum ada data untuk diexport.")
     
     st.download_button(
         label="📥 Download CSV untuk Canva Bulk Create",
