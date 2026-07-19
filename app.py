@@ -180,10 +180,11 @@ if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_cont
         ---SECTION---
 
         ### ⚖️ ANALISIS KRITIS POTENSI & RISIKO (SWOT RINGKAS)
-        (Sajikan analisis SWOT dalam bentuk TABEL 2 KOLOM di bawah ini. Gunakan bullet points '•' di dalam sel agar rapi):
         | 💪 Kekuatan & Peluang (Strengths & Opportunities) | ⚠️ Kelemahan & Risiko (Weaknesses & Threats) |
         | :--- | :--- |
-        | • **[Poin Keunggulan 1]:** Penjelasan singkat.<br>• **[Poin Keunggulan 2]:** Penjelasan singkat.<br>• **[Poin Peluang 1]:** Penjelasan singkat.<br>• **[Poin Peluang 2]:** Penjelasan singkat. | • **[Poin Kelemahan 1]:** Penjelasan singkat jujur tanpa sugarcoating.<br>• **[Poin Kelemahan 2]:** Penjelasan singkat.<br>• **[Poin Risiko 1]:** Penjelasan risiko.<br>• **[Poin Risiko 2]:** Penjelasan risiko. |
+        | [Poin 1 SO]: ....................... | [Poin 1 WT]: ....................... |
+        | [Poin 2 SO]: ....................... | [Poin 2 WT]: ....................... |
+        | [Poin 3 SO]: ....................... | [Poin 3 WT]: ....................... |
 
         ---SECTION---
 
