@@ -4,6 +4,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import pandas as pd
 import google.generativeai as genai
 from geopy.geocoders import Nominatim
+from io import BytesIO
 
 # --- 1. KONFIGURASI HALAMAN ---
 st.set_page_config(
@@ -88,8 +89,8 @@ with tab1:
         with st.spinner("⏳ Memindai koordinat satelit, melacak nama jalan & wilayah, serta menyusun tabel analisis..."):
             try:
                 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-            except:
-                st.error("❌ API Key belum dipasang di pengaturan rahasia Streamlit Cloud.")
+            except Exception as e:
+                st.error(f"❌ API Key Error: {e}")
                 st.stop()
 
             # LANGKAH 1: GEOLOCATION
@@ -109,9 +110,7 @@ with tab1:
                 kabupaten_asli = "Kabupaten setempat"
                 info_validasi_peta = f"Koordinat GPS: {koordinat_lat}, {koordinat_lng} (Gunakan pemetaan internal AI)"
 
-            # =====================================================================
-            # LANGKAH 2: PROMPT MASTER YANG DI-GEMBOK ANTI BACIN / BAHASA INGGRIS
-            # =====================================================================
+            # LANGKAH 2: PROMPT MASTER ANTI-HALUSINASI & ANTI-BAHASA INGGRIS
             prompt = f"""
             Kamu adalah Penilai Aset Negara (Appraiser) DJKN/KPKNL. Tugasmu membuat laporan analisis aset properti yang LUGAS, REALISTIS, DAN MEMBUMI (hindari bahasa akademis tinggi, ganti dengan bahasa sehari-hari yang profesional).
 
@@ -227,29 +226,38 @@ with tab1:
             ### 💰 ESTIMASI HARGA PASAR (INDIKATIF)
             """
 
-            # EXECUTE GEMINI DENGAN SUHU DINGIN (PATUH FORMAT) & PRIORITAS MODEL BARU
-            config_patuh = genai.types.GenerationConfig(
-                temperature=0.2, # Suhu 0.2 bikin AI tidak berhalusinasi dan patuh pada aturan ---SECTION---
-            )
+            # EXECUTE GEMINI DENGAN PRIORITAS OTOMATIS & ANTI-ERROR
+            config_patuh = {"temperature": 0.2} # Menggunakan format dictionary agar 100% cocok di semua versi library
             
-            # Kita prioritaskan model yang paling pintar mematuhi format Markdown
-            model_kandidat = ['models/gemini-1.5-flash', 'models/gemini-1.5-pro', 'models/gemini-1.0-pro']
+            # Memindai daftar model resmi yang aktif di akun API Key kamu
+            semua_model = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+            # Mengurutkan agar model Gemini 1.5 (Flash/Pro) diprioritaskan duluan
+            model_kandidat = sorted([m for m in semua_model if not any(x in m.lower() for x in ['tts', 'audio', 'vision', 'embedding', 'aqa', 'imagen'])], key=lambda x: ('1.5' in x, 'flash' in x), reverse=True)
             
             response = None
+            pesan_error_terakhir = "Tidak ada model yang kompatibel."
+            
             for nama_model in model_kandidat:
                 try:
                     model = genai.GenerativeModel(model_name=nama_model, generation_config=config_patuh)
-                    response = model.generate_content(prompt)
-                    # Pastikan respons valid dan mengandung pemisah bab kita
-                    if response and response.text and "---SECTION---" in response.text:
+                    res = model.generate_content(prompt)
+                    if res and res.text:
+                        response = res
                         break 
-                except:
+                except Exception as e:
+                    pesan_error_terakhir = str(e)
                     continue
 
             # MENAMPILKAN HASIL
             if response and response.text:
                 st.success("✅ Laporan Berhasil Disusun!")
-                st.session_state.hasil_ai = response.text
+                
+                # BERSIHKAN TEKS DARI CURHATAN BAHASA INGGRIS SEBELUM SIMPAN KE SESSION
+                teks_laporan = response.text
+                if "### 💰 ESTIMASI HARGA PASAR" in teks_laporan:
+                    teks_laporan = "### 💰 ESTIMASI HARGA PASAR" + teks_laporan.split("### 💰 ESTIMASI HARGA PASAR")[1]
+                
+                st.session_state.hasil_ai = teks_laporan
                 st.session_state.temp_info_peta = info_validasi_peta
                 
                 with st.container(border=True):
@@ -268,10 +276,6 @@ with tab1:
                     with col_sat: st.link_button("🛰️ Satelit (Pin Merah)", url_satelit, use_container_width=True)
                     with col_earth: st.link_button("🌍 Google Earth 3D", url_earth, use_container_width=True)
 
-                teks_laporan = response.text
-                if "### 💰 ESTIMASI HARGA PASAR" in teks_laporan:
-                    teks_laporan = "### 💰 ESTIMASI HARGA PASAR" + teks_laporan.split("### 💰 ESTIMASI HARGA PASAR")[1]
-
                 bagian_laporan = teks_laporan.split("---SECTION---")
                 for bagian in bagian_laporan:
                     teks_bersih = bagian.strip()
@@ -279,7 +283,7 @@ with tab1:
                         with st.container(border=True):
                             st.markdown(teks_bersih)
             else:
-                st.error("❌ Gagal memproses laporan. Silakan coba lagi.")
+                st.error(f"❌ Gagal memproses laporan. Detail Error dari Server Google: {pesan_error_terakhir}")
 
     # TOMBOL SIMPAN KE REVIEW
     if "hasil_ai" in st.session_state:
@@ -293,7 +297,6 @@ with tab1:
                 hasil_ai = st.session_state.hasil_ai
                 bagian = hasil_ai.split("---SECTION---")
                 
-                # Pemetaan key dengan syntax yang utuh (tiap baris ada 'else ""')
                 estimasi = bagian[0].strip() if len(bagian) > 0 else ""
                 karakteristik = bagian[1].strip() if len(bagian) > 1 else ""
                 akses = bagian[2].strip() if len(bagian) > 2 else ""
@@ -338,17 +341,14 @@ with tab2:
             unique_key = f"{field_key}_{index}"
             backup_key = f"{field_key}_backup_{index}"
             
-            # Inisialisasi data & backup untuk fitur Batal (X)
             if unique_key not in st.session_state:
                 st.session_state[unique_key] = aset['data'].get(field_key, "")
             if backup_key not in st.session_state:
                 st.session_state[backup_key] = st.session_state[unique_key]
             
-            # MEMBUAT KOTAK TEGAS SEPERTI TAB 1
             with st.container(border=True):
                 col1, col2 = st.columns([0.93, 0.07])
                 with col1:
-                    # Jika sedang mode edit, tampilkan Text Area
                     if st.session_state.get(f"is_edit_{unique_key}", False):
                         st.session_state[unique_key] = st.text_area(
                             "✏️ Mode Edit (Ubah teks di bawah ini):", 
@@ -357,24 +357,22 @@ with tab2:
                             label_visibility="collapsed"
                         )
                     else:
-                        # Mode normal: Langsung tampilkan Markdown AI (tanpa judul ganda!)
                         st.markdown(st.session_state[unique_key])
                 
                 with col2:
-                    # Tombol Pensil (Edit) vs Tombol Centang & Silang (Simpan/Batal)
                     if not st.session_state.get(f"is_edit_{unique_key}", False):
                         if st.button("✏️", key=f"edit_{unique_key}", help="Edit bagian ini", use_container_width=True):
                             st.session_state[f"is_edit_{unique_key}"] = True
-                            st.session_state[backup_key] = st.session_state[unique_key] # Simpan backup sebelum edit
+                            st.session_state[backup_key] = st.session_state[unique_key]
                             st.rerun()
                     else:
                         if st.button("✅", key=f"save_{unique_key}", help="Simpan Editan", use_container_width=True):
                             st.session_state[f"is_edit_{unique_key}"] = False
-                            st.session_state[backup_key] = st.session_state[unique_key] # Update backup
+                            st.session_state[backup_key] = st.session_state[unique_key]
                             st.rerun()
                         if st.button("❌", key=f"cancel_{unique_key}", help="Batal Edit", use_container_width=True):
                             st.session_state[f"is_edit_{unique_key}"] = False
-                            st.session_state[unique_key] = st.session_state[backup_key] # Kembalikan ke teks sebelum diedit!
+                            st.session_state[unique_key] = st.session_state[backup_key]
                             st.rerun()
                             
             return st.session_state[unique_key]
@@ -382,7 +380,6 @@ with tab2:
         st.markdown(f"### 📑 Memoles Laporan: **{aset['nama']}**")
         st.write("Silakan klik ikon **Pensil (✏️)** di pojok kanan setiap kotak untuk mengedit per bagian. Klik **(✅)** untuk simpan, atau **(❌)** untuk batal.")
         
-        # Panggil kotak untuk tiap bagian (tanpa parameter label biar ga ganda)
         estimasi_final = edit_box("estimasi", idx)
         karakteristik_final = edit_box("karakteristik", idx)
         akses_final = edit_box("akses", idx)
@@ -391,13 +388,11 @@ with tab2:
         rekomendasi_final = edit_box("rekomendasi", idx)
         kesimpulan_final = edit_box("kesimpulan", idx)
         
-        # --- TOMBOL FINALISASI DAN KIRIM KE TAB 3 ---
         st.divider()
         st.markdown("### 🏁 Finalisasi & Kirim Data")
         st.write("Jika semua kotak di atas sudah fiks dan selesai kamu edit, tekan tombol di bawah agar datanya siap disimpan permanen di Tab 3:")
         
         if st.button("💾 Simpan Perubahan & Kirim ke Tab 3", type="primary", use_container_width=True):
-            # Memperbarui data di memori utama dengan hasil editan terbarumu
             aset['data']['estimasi'] = estimasi_final
             aset['data']['karakteristik'] = karakteristik_final
             aset['data']['akses'] = akses_final
@@ -419,7 +414,6 @@ with tab3:
     else:
         st.subheader("📑 Daftar Aset Siap Simpan / Export")
         
-        # Menyiapkan tabel ringkas untuk dilihat pengguna
         data_for_csv = []
         for i, item in enumerate(st.session_state.buffer_laporan):
             data_for_csv.append({
@@ -436,10 +430,7 @@ with tab3:
             })
         
         df_export = pd.DataFrame(data_for_csv)
-        
-        # Menampilkan tabel ringkas (hanya nama dan koordinat agar layar bersih)
         st.dataframe(df_export[["Nama_Aset", "Lat", "Lng"]], use_container_width=True)
-        
         st.markdown("---")
         
         # 1. TOMBOL SIMPAN KE GSHEET
@@ -451,14 +442,13 @@ with tab3:
                 client = get_gspread_client()
                 if client:
                     sheet = client.open("Database_Aset_Negara").sheet1
-                    
                     with st.spinner("⏳ Mengirim data ke server Google Sheets..."):
                         existing_data = sheet.get_all_values()
-                        start_id = len(existing_data) # ID otomatis melanjutkan baris terakhir
+                        start_id = len(existing_data)
                         
                         for idx_row, row_dict in enumerate(data_for_csv):
                             row_data = [
-                                start_id + idx_row, # ID otomatis berurutan
+                                start_id + idx_row,
                                 row_dict["Nama_Aset"],
                                 row_dict["Lat"],
                                 row_dict["Lng"],
@@ -498,7 +488,6 @@ with tab3:
         col_dl1, col_dl2 = st.columns(2)
         
         with col_dl1:
-            # Download CSV (Canva Bulk Create)
             csv_data = df_export.to_csv(index=False).encode('utf-8')
             st.download_button(
                 label="📥 Unduh Format CSV (Canva Bulk Create Ready)",
@@ -509,8 +498,6 @@ with tab3:
             )
             
         with col_dl2:
-            # Download Excel (.xlsx) untuk arsip kantor
-            from io import BytesIO
             output = BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
                 df_export.to_excel(writer, index=False, sheet_name='Data Appraisal')
