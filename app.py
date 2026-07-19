@@ -282,8 +282,15 @@ if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_cont
                         
         else:
             st.error("❌ Gagal memproses laporan. Silakan coba lagi.")
+
+    # TOMBOL PINDAH KE REVIEW
+    if "temp_data" in st.session_state:
+        if st.button("Simpan ke Review"):
+            st.session_state.buffer_laporan.append(st.session_state.temp_data)
+            st.success("Berhasil pindah ke Review!")
+            del st.session_state.temp_data
             
-    # PENTING: Saat tombol "Pindah ke Review" ditekan, gunakan logic ini:
+    # PENTING: Saat tombol "Simpan ke Review" ditekan, gunakan logic ini:
     if "hasil_ai" in st.session_state:
         nama_aset = st.text_input("Beri Nama Aset:")
         if st.button("Simpan ke Review"):
@@ -301,7 +308,7 @@ if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_cont
                     "kesimpulan": "Hasil Kesimpulan AI"
                 }
             })
-            st.success("Berhasil pindah ke Review!")
+            st.success("Berhasil Menyimpan ke Review!")
 
 # --- TAB 2: REVIEW & EDIT ---
 with tab2:
