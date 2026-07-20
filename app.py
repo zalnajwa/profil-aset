@@ -38,9 +38,9 @@ st.markdown("---")
 
 # DAFTAR AKUN PENGGUNA (Bisa kamu tambah atau ubah passwordnya bebas)
 DATABASE_USER = {
-    "admin": {"password": "admin123", "role": "admin", "nama": "Admin Pusat (Kamu)"},
-    "appraiser1": {"password": "user123", "role": "user", "nama": "Budi - Tim Penilai"},
-    "appraiser2": {"password": "user123", "role": "user", "nama": "Siti - Tim Penilai"},
+    "najwa": {"password": "kuncijatim", "role": "admin", "nama": "Admin Pusat (Kamu)"},
+    "1234": {"password": "jatimakmur", "role": "user", "nama": "Dafa"},
+    "friska": {"password": "jatimakmur", "role": "user", "nama": "Friska"},
 }
 
 # Inisialisasi status login di memori browser
