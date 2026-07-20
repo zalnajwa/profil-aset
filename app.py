@@ -27,14 +27,13 @@ def get_gspread_client():
         st.error(f"GSpread Error: {e}")
         return None
 
-# FUNGSI PEMBERSIH JUDUL BAB (Agar Tidak Ganda di Excel)
+# FUNGSI PEMBERSIH JUDUL BAB (Agar Tidak Ganda di Excel/GSheet)
 def clean_section_body(text):
     if not text:
         return ""
     lines = text.strip().split('\n')
     while lines and not lines[0].strip():
         lines.pop(0)
-    # Jika baris pertama adalah judul Markdown (diawali tanda #), hapus baris tersebut
     if lines and lines[0].strip().startswith('#'):
         lines.pop(0)
     while lines and not lines[0].strip():
@@ -45,11 +44,9 @@ def clean_section_body(text):
 if 'buffer_laporan' not in st.session_state: 
     st.session_state.buffer_laporan = []
 
-# Memori Abadi agar laporan di Tab 1 tidak hilang saat klik sidebar
 if 'laporan_aktif' not in st.session_state:
     st.session_state.laporan_aktif = None
 
-# Database user disimpan di session state agar perubahan username bisa bertahan
 if 'users_db' not in st.session_state:
     st.session_state.users_db = {
         "najwa": {"password": "kuncijatim", "role": "admin", "nama": "Admin Pusat (Kamu)"},
@@ -68,7 +65,6 @@ st.title("🏢 Sistem Analisis & Appraisal Aset Properti")
 st.write("Aplikasi internal untuk generate laporan analisis lingkungan, estimasi harga, dan aksesibilitas sebuah aset secara mendalam.")
 st.markdown("---")
 
-# TAMPILAN FORM LOGIN
 if not st.session_state.is_logged_in:
     st.sidebar.subheader("🔐 Login Sistem Internal")
     input_user = st.sidebar.text_input("Username:")
@@ -90,12 +86,10 @@ if not st.session_state.is_logged_in:
     st.warning("⚠️ Silakan login terlebih dahulu di menu sebelah kiri untuk mengakses sistem appraisal.")
     st.stop()
 else:
-    # TAMPILAN KARTU PROFIL RATA KIRI & RAPI
     with st.sidebar.container(border=True):
         st.markdown(f"👤 **{st.session_state.nama_user}**")
         st.markdown(f"🎯 Role: **{st.session_state.role.upper()}**")
     
-    # FITUR GANTI USERNAME MANDIRI + AUTO SYNC GSHEET
     with st.sidebar.expander("⚙️ Pengaturan Akun (Ganti Username)"):
         new_usn_input = st.text_input("Username Baru:", placeholder="Ketik username baru...")
         confirm_pass_input = st.text_input("Konfirmasi Password Saat Ini:", type="password")
@@ -116,12 +110,10 @@ else:
             else:
                 with st.spinner("⏳ Menyinkronkan database GSheet..."):
                     try:
-                        # 1. Ubah di memori aplikasi
                         user_data = st.session_state.users_db.pop(old_usn)
                         st.session_state.users_db[new_usn] = user_data
                         st.session_state.username = new_usn
                         
-                        # 2. Sinkronisasi (Timpa masal) di Google Sheets
                         client = get_gspread_client()
                         if client:
                             sheet = client.open("Database_Aset_Negara").sheet1
@@ -202,7 +194,6 @@ if st.sidebar.button("⚡ Proses AI Sekarang", type="primary", use_container_wid
             except Exception as e:
                 st.sidebar.error(f"❌ Error AI: {e}")
 
-# TAMPILAN HASIL AI SIDEBAR YANG RAPI + FITUR COPAS
 if "hasil_sidebar" in st.session_state:
     st.sidebar.markdown("💡 **Hasil Asisten AI:**")
     
@@ -421,7 +412,6 @@ with tab1:
                     pesan_error_terakhir = str(e)
                     continue
 
-            # MENYIMPAN KE MEMORI ABADI (ANTI HILANG SAAT KLIK SIDEBAR)
             if response and response.text:
                 teks_laporan = response.text
                 if "### 💰 ESTIMASI HARGA PASAR" in teks_laporan:
@@ -429,7 +419,6 @@ with tab1:
                 
                 bagian = teks_laporan.split("---SECTION---")
                 
-                # Memotong judul bab agar tidak ganda saat disimpan
                 st.session_state.laporan_aktif = {
                     "alamat": alamat_aset,
                     "lat": koordinat_lat,
@@ -438,8 +427,8 @@ with tab1:
                     "estimasi": clean_section_body(bagian[0]) if len(bagian) > 0 else "",
                     "karakteristik": clean_section_body(bagian[1]) if len(bagian) > 1 else "",
                     "akses": clean_section_body(bagian[2]) if len(bagian) > 2 else "",
-                    "poi": clean_section_body(bagian[3]) if len(bagian) > 3 else "", # Read-Only Contekan
-                    "swot": clean_section_body(bagian[4]) if len(bagian) > 4 else "", # Read-Only Contekan
+                    "poi": clean_section_body(bagian[3]) if len(bagian) > 3 else "",
+                    "swot": clean_section_body(bagian[4]) if len(bagian) > 4 else "",
                     "rekomendasi": clean_section_body(bagian[5]) if len(bagian) > 5 else "",
                     "kesimpulan": clean_section_body(bagian[6]) if len(bagian) > 6 else "",
                 }
@@ -447,7 +436,6 @@ with tab1:
             else:
                 st.error(f"❌ Gagal memproses laporan. Detail Error: {pesan_error_terakhir}")
 
-    # MENAMPILKAN LAPORAN DARI MEMORI ABADI (TERUS MUNCUL TANPA HILANG)
     if st.session_state.laporan_aktif:
         lap = st.session_state.laporan_aktif
         with st.container(border=True):
@@ -466,7 +454,6 @@ with tab1:
             with col_sat: st.link_button("🛰️ Satelit (Pin Merah)", url_satelit, use_container_width=True)
             with col_earth: st.link_button("🌍 Google Earth 3D", url_earth, use_container_width=True)
 
-        # Tampilkan kotak isi secara rapi dengan judul statis
         with st.container(border=True):
             st.markdown("### 💰 ESTIMASI HARGA PASAR (INDIKATIF)")
             st.markdown(lap['estimasi'])
@@ -489,7 +476,6 @@ with tab1:
             st.markdown("### 📝 KESIMPULAN AKHIR")
             st.markdown(lap['kesimpulan'])
 
-        # TOMBOL SIMPAN KE REVIEW
         st.divider()
         nama_aset = st.text_input("📝 Beri Nama untuk Aset Ini (Agar mudah dicari di Tab Review):", value=lap['alamat'], key="nama_aset_review")
         
@@ -509,8 +495,8 @@ with tab1:
                             "akses": lap['akses'],
                             "rekomendasi": lap['rekomendasi'],
                             "kesimpulan": lap['kesimpulan'],
-                            "poi_contekan": lap['poi'],   # Contekan Read-Only
-                            "swot_contekan": lap['swot']  # Contekan Read-Only
+                            "poi_contekan": lap['poi'],
+                            "swot_contekan": lap['swot']
                         }
                     })
                     st.success("✅ Berhasil disimpan ke Review! Silakan buka Tab 2 (Review & Edit) di atas.")
@@ -534,7 +520,6 @@ with tab2:
         )
         aset = st.session_state.buffer_laporan[idx]
         
-        # 1. TAMPILKAN POI & SWOT SEBAGAI CONTEKAN READ-ONLY (TIDAK BISA DIEDIT & TIDAK DISIMPAN)
         with st.expander("📍 Lihat Contekan POI & SWOT (Read-Only untuk Referensi)", expanded=False):
             st.markdown("#### A. Pemetaan Fasilitas Terdekat (POI)")
             st.markdown(aset['data'].get('poi_contekan', 'Tidak ada data POI.'))
@@ -545,7 +530,6 @@ with tab2:
         st.markdown(f"### 📑 Memoles Isi Laporan: **{aset['nama']}**")
         st.write("Silakan klik ikon **Pensil (✏️)** di pojok kanan untuk mengedit isi bagian tersebut. Judul bab tidak akan berubah atau ganda di Excel.")
         
-        # FUNGSI EDIT BOX TANPA JUDUL GANDA
         def edit_box(field_key, label_judul, index):
             unique_key = f"{field_key}_{index}"
             backup_key = f"{field_key}_backup_{index}"
@@ -556,7 +540,6 @@ with tab2:
                 st.session_state[backup_key] = st.session_state[unique_key]
             
             with st.container(border=True):
-                # LABEL PERMANEN YANG GA BISA DIEDIT USER
                 st.markdown(f"#### {label_judul}")
                 
                 col1, col2 = st.columns([0.93, 0.07])
@@ -589,7 +572,6 @@ with tab2:
                             
             return st.session_state[unique_key]
 
-        # Panggil kotak HANYA untuk 5 bagian utama yang disimpan ke database (Tanpa POI & SWOT)
         estimasi_final = edit_box("estimasi", "💰 Estimasi Harga Pasar (Indikatf)", idx)
         karakteristik_final = edit_box("karakteristik", "🏘️ Karakteristik dan Dinamika Kawasan", idx)
         akses_final = edit_box("akses", "🛣️ Evaluasi Aksesibilitas dan Konektivitas", idx)
@@ -620,7 +602,6 @@ with tab3:
     else:
         st.subheader("📑 Daftar Aset Siap Simpan / Export")
         
-        # MEMBANGUN DATAFRAME YANG BERSIH TANPA POI & SWOT
         data_for_csv = []
         for i, item in enumerate(st.session_state.buffer_laporan):
             data_for_csv.append({
@@ -638,39 +619,71 @@ with tab3:
         st.dataframe(df_export[["Nama_Aset", "Lat", "Lng"]], use_container_width=True)
         st.markdown("---")
         
-        # 1. TOMBOL SIMPAN KE GSHEET (DENGAN STEMPEL USERNAME, TANPA POI & SWOT)
+        # 1. TOMBOL SIMPAN KE GSHEET (DENGAN SISTEM SMART SAVE / ANTI-DUPLIKAT)
         st.subheader("☁️ Simpan ke Cloud Database (Google Sheets)")
-        st.write(f"Tekan tombol ini untuk menambahkan seluruh aset di atas ke database atas nama **{st.session_state.username}**:")
+        st.write(f"Tekan tombol ini untuk menambahkan/memperbarui seluruh aset di atas ke database atas nama **{st.session_state.username}**:")
         
-        if st.button("🚀 Simpan Permanen ke Google Sheets", type="primary", use_container_width=True):
+        if st.button("🚀 Simpan Permanen ke Google Sheets (Anti-Duplikat)", type="primary", use_container_width=True):
             try:
                 client = get_gspread_client()
                 if client:
                     sheet = client.open("Database_Aset_Negara").sheet1
-                    with st.spinner("⏳ Mengirim data ke server Google Sheets..."):
+                    with st.spinner("⏳ Memeriksa dan mengirim data ke server Google Sheets..."):
                         existing_data = sheet.get_all_values()
-                        start_id = len(existing_data)
                         
-                        for idx_row, row_dict in enumerate(data_for_csv):
-                            row_data = [
-                                start_id + idx_row,
-                                st.session_state.username, # <--- STEMPEL KEPEMILIKAN
-                                row_dict["Nama_Aset"],
-                                row_dict["Lat"],
-                                row_dict["Lng"],
-                                row_dict["Estimasi"],
-                                row_dict["Karakteristik"],
-                                row_dict["Akses"],
-                                row_dict["Rekomendasi"],
-                                row_dict["Kesimpulan"]
-                            ]
-                            sheet.append_row(row_data)
+                        for row_dict in data_for_csv:
+                            current_usn = str(st.session_state.username).strip().lower()
+                            target_nama = str(row_dict["Nama_Aset"]).strip().lower()
                             
-                    st.success("🎉 Berhasil! Semua aset telah disimpan ke Google Sheets atas nama akunmu!")
+                            found_row_idx = None
+                            # Cek apakah (Username + Nama_Aset) sudah ada di GSheet (Mulai baris ke-2 / index 1)
+                            for r_idx, row in enumerate(existing_data[1:], start=2):
+                                if len(row) > 2:
+                                    sheet_usn = str(row[1]).strip().lower()
+                                    sheet_nama = str(row[2]).strip().lower()
+                                    if sheet_usn == current_usn and sheet_nama == target_nama:
+                                        found_row_idx = r_idx
+                                        break
+                            
+                            if found_row_idx:
+                                # Jika SUDAH ADA: Update baris yang sama (Anti-Duplikat)
+                                existing_id = existing_data[found_row_idx - 1][0]
+                                row_data = [
+                                    existing_id,
+                                    st.session_state.username,
+                                    row_dict["Nama_Aset"],
+                                    row_dict["Lat"],
+                                    row_dict["Lng"],
+                                    row_dict["Estimasi"],
+                                    row_dict["Karakteristik"],
+                                    row_dict["Akses"],
+                                    row_dict["Rekomendasi"],
+                                    row_dict["Kesimpulan"]
+                                ]
+                                sheet.update(f"A{found_row_idx}:J{found_row_idx}", [row_data])
+                            else:
+                                # Jika BELUM ADA: Buat baris baru (Append)
+                                start_id = len(existing_data) + 1
+                                row_data = [
+                                    start_id,
+                                    st.session_state.username,
+                                    row_dict["Nama_Aset"],
+                                    row_dict["Lat"],
+                                    row_dict["Lng"],
+                                    row_dict["Estimasi"],
+                                    row_dict["Karakteristik"],
+                                    row_dict["Akses"],
+                                    row_dict["Rekomendasi"],
+                                    row_dict["Kesimpulan"]
+                                ]
+                                sheet.append_row(row_data)
+                                existing_data.append(row_data) # Tambah ke list lokal agar batch loop berikutnya tahu
+                            
+                    st.success("🎉 Berhasil! Data aset telah diperbarui secara cerdas di Google Sheets tanpa duplikat.")
             except Exception as e:
                 st.error(f"❌ Gagal simpan ke GSheet: {e}")
 
-        # 2. FITUR MELIHAT LIVE DATABASE DENGAN FILTER PRIVASI (RBAC ANTI-ERROR ANGKA)
+        # 2. FITUR MELIHAT LIVE DATABASE DENGAN FILTER PRIVASI (RBAC)
         with st.expander("📖 Klik di sini untuk melihat Isi Live Database Google Sheets"):
             try:
                 client_view = get_gspread_client()
@@ -680,7 +693,6 @@ with tab3:
                     if records:
                         df_records = pd.DataFrame(records)
                         
-                        # SOLUSI KASUS DAFA (1234): Paksa kolom Username jadi string agar tidak dianggap kosong
                         if 'Username' in df_records.columns:
                             df_records['Username'] = df_records['Username'].astype(str).str.strip().str.lower()
                             
@@ -701,7 +713,7 @@ with tab3:
 
         st.markdown("---")
 
-        # 3. TOMBOL DOWNLOAD EXCEL & CSV (BERSIH TANPA POI & SWOT, TANPA JUDUL GANDA)
+        # 3. TOMBOL DOWNLOAD EXCEL & CSV (BERSIH)
         st.subheader("📥 Unduh File untuk Laporan Manual & Canva")
         col_dl1, col_dl2 = st.columns(2)
         
