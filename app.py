@@ -31,7 +31,7 @@ def get_gspread_client():
 if 'buffer_laporan' not in st.session_state: 
     st.session_state.buffer_laporan = []
 
-# --- 3. SISTEM KEAMANAN (PIN RAHASIA) ---
+# --- 3. SISTEM KEAMANAN & ASISTEN AI SIDEBAR ---
 st.title("🏢 Sistem Analisis & Appraisal Aset Properti")
 st.write("Aplikasi internal untuk generate laporan analisis lingkungan, estimasi harga, dan aksesibilitas sebuah aset secara mendalam.")
 st.markdown("---")
@@ -41,6 +41,67 @@ if pin_rahasia != "jatimakmur":
     st.warning("⚠️ Silakan masukkan PIN Internal yang benar di menu sebelah kiri untuk membuka form analisis.")
     st.stop()
 st.sidebar.success("✅ PIN Benar! Akses diberikan.")
+
+# ==========================================================
+# --- FITUR BARU: ASISTEN PARAFRASE & TANYA AI DI SIDEBAR ---
+# ==========================================================
+st.sidebar.markdown("---")
+st.sidebar.subheader("🤖 Asisten Parafrase AI")
+st.sidebar.write("Gunakan fitur ini untuk merapikan kalimat kalimat kasar atau tanya AI tanpa harus meninggalkan halaman edit.")
+
+opsi_ai_sidebar = st.sidebar.selectbox(
+    "Pilih Mode Asisten:", 
+    [
+        "✨ Parafrase (Bahasa Kedinasan)", 
+        "🔍 Perbaiki Tata Bahasa (EYD)", 
+        "📉 Buat Lebih Ringkas & Padat", 
+        "💬 Tanya Bebas ke AI"
+    ]
+)
+
+teks_input_sidebar = st.sidebar.text_area(
+    "Ketik teks / pertanyaanmu di sini:", 
+    height=120, 
+    placeholder="Contoh: Tanah ini bentuknya ngantong dan lokasinya agak masuk ke dalam gg, tapi dekat pasar..."
+)
+
+if st.sidebar.button("⚡ Proses AI Sekarang", type="primary", use_container_width=True):
+    if not teks_input_sidebar.strip():
+        st.sidebar.warning("⚠️ Ketik teksnya dulu ya!")
+    else:
+        with st.sidebar.status("⏳ AI sedang berpikir..."):
+            try:
+                genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+                
+                # Menentukan instruksi berdasarkan pilihan mode
+                if "Parafrase" in opsi_ai_sidebar:
+                    prompt_sidebar = f"Ubah teks berikut menjadi bahasa laporan kedinasan yang sangat formal, profesional, baku, dan cocok untuk dokumen appraisal properti resmi: '{teks_input_sidebar}'"
+                elif "Tata Bahasa" in opsi_ai_sidebar:
+                    prompt_sidebar = f"Perbaiki tata bahasa, struktur kalimat, dan EYD dari teks berikut agar baku dan enak dibaca tanpa mengubah maksud aslinya: '{teks_input_sidebar}'"
+                elif "Ringkas" in opsi_ai_sidebar:
+                    prompt_sidebar = f"Buat ringkasan yang padat, lugas, dan langsung pada inti informasi penting dari teks berikut: '{teks_input_sidebar}'"
+                else:
+                    prompt_sidebar = f"Jawab pertanyaan berikut secara singkat, padat, dan profesional dalam konteks penilaian dan optimalisasi aset properti: '{teks_input_sidebar}'"
+                
+                # Menggunakan Gemini Flash agar respons di sidebar super cepat
+                model_sidebar = genai.GenerativeModel("models/gemini-1.5-flash")
+                res_sidebar = model_sidebar.generate_content(prompt_sidebar)
+                
+                if res_sidebar and res_sidebar.text:
+                    st.session_state.hasil_sidebar = res_sidebar.text
+                else:
+                    st.sidebar.error("❌ Gagal mendapatkan respons dari AI.")
+            except Exception as e:
+                st.sidebar.error(f"❌ Error AI: {e}")
+
+# Menampilkan hasil AI di sidebar dengan fitur 1-Klik Copas
+if "hasil_sidebar" in st.session_state:
+    st.sidebar.markdown("💡 **Hasil AI (Klik ikon di kanan atas kotak untuk Copas):**")
+    st.sidebar.code(st.session_state.hasil_sidebar, language="text")
+    
+    if st.sidebar.button("🗑️ Hapus / Bersihkan Hasil", use_container_width=True):
+        del st.session_state.hasil_sidebar
+        st.rerun()
 
 # --- 4. TAB SETUP ---
 tab1, tab2, tab3 = st.tabs(["🚀 1. Generate", "📝 2. Review & Edit", "💾 3. Database"])
