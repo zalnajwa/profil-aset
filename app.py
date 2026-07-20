@@ -31,23 +31,56 @@ def get_gspread_client():
 if 'buffer_laporan' not in st.session_state: 
     st.session_state.buffer_laporan = []
 
-# --- 3. SISTEM KEAMANAN & ASISTEN AI SIDEBAR ---
+# --- 3. SISTEM LOGIN MULTI-USER & ASISTEN SIDEBAR ---
 st.title("🏢 Sistem Analisis & Appraisal Aset Properti")
 st.write("Aplikasi internal untuk generate laporan analisis lingkungan, estimasi harga, dan aksesibilitas sebuah aset secara mendalam.")
 st.markdown("---")
 
-pin_rahasia = st.sidebar.text_input("🔐 Masukkan PIN Internal:", type="password")
-if pin_rahasia != "jatimakmur":
-    st.warning("⚠️ Silakan masukkan PIN Internal yang benar di menu sebelah kiri untuk membuka form analisis.")
+# DAFTAR AKUN PENGGUNA (Bisa kamu tambah atau ubah passwordnya bebas)
+DATABASE_USER = {
+    "admin": {"password": "admin123", "role": "admin", "nama": "Admin Pusat (Kamu)"},
+    "appraiser1": {"password": "user123", "role": "user", "nama": "Budi - Tim Penilai"},
+    "appraiser2": {"password": "user123", "role": "user", "nama": "Siti - Tim Penilai"},
+}
+
+# Inisialisasi status login di memori browser
+if 'is_logged_in' not in st.session_state:
+    st.session_state.is_logged_in = False
+    st.session_state.username = ""
+    st.session_state.role = ""
+    st.session_state.nama_user = ""
+
+# TAMPILAN FORM LOGIN
+if not st.session_state.is_logged_in:
+    st.sidebar.subheader("🔐 Login Sistem Internal")
+    input_user = st.sidebar.text_input("Username:")
+    input_pass = st.sidebar.text_input("Password:", type="password")
+    
+    if st.sidebar.button("Masuk / Login", type="primary", use_container_width=True):
+        if input_user in DATABASE_USER and DATABASE_USER[input_user]["password"] == input_pass:
+            st.session_state.is_logged_in = True
+            st.session_state.username = input_user
+            st.session_state.role = DATABASE_USER[input_user]["role"]
+            st.session_state.nama_user = DATABASE_USER[input_user]["nama"]
+            st.rerun()
+        else:
+            st.sidebar.error("❌ Username atau Password salah!")
+            
+    st.warning("⚠️ Silakan login terlebih dahulu di menu sebelah kiri untuk mengakses sistem appraisal.")
     st.stop()
-st.sidebar.success("✅ PIN Benar! Akses diberikan.")
+else:
+    # TAMPILAN JIKA SUDAH LOGIN DI SIDEBAR
+    st.sidebar.success(f"👤 **{st.session_state.nama_user}**\n\n🎯 Role: **{st.session_state.role.upper()}**")
+    if st.sidebar.button("🚪 Logout", use_container_width=True):
+        st.session_state.is_logged_in = False
+        st.rerun()
 
 # ==========================================================
-# --- FITUR BARU: ASISTEN PARAFRASE & TANYA AI DI SIDEBAR ---
+# --- ASISTEN PARAFRASE & TANYA AI DI SIDEBAR ---
 # ==========================================================
 st.sidebar.markdown("---")
 st.sidebar.subheader("🤖 Asisten Parafrase AI")
-st.sidebar.write("Gunakan fitur ini untuk merapikan kalimat kalimat kasar atau tanya AI tanpa harus meninggalkan halaman edit.")
+st.sidebar.write("Rapikan kalimat kasar atau tanya AI tanpa meninggalkan halaman edit.")
 
 opsi_ai_sidebar = st.sidebar.selectbox(
     "Pilih Mode Asisten:", 
@@ -62,7 +95,7 @@ opsi_ai_sidebar = st.sidebar.selectbox(
 teks_input_sidebar = st.sidebar.text_area(
     "Ketik teks / pertanyaanmu di sini:", 
     height=120, 
-    placeholder="Contoh: Tanah ini bentuknya ngantong dan lokasinya agak masuk ke dalam gg, tapi dekat pasar..."
+    placeholder="Contoh: Tanah ini bentuknya ngantong dan lokasinya agak masuk ke dalam gg..."
 )
 
 if st.sidebar.button("⚡ Proses AI Sekarang", type="primary", use_container_width=True):
@@ -72,8 +105,6 @@ if st.sidebar.button("⚡ Proses AI Sekarang", type="primary", use_container_wid
         with st.sidebar.status("⏳ AI sedang berpikir..."):
             try:
                 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-                
-                # Menentukan instruksi berdasarkan pilihan mode
                 if "Parafrase" in opsi_ai_sidebar:
                     prompt_sidebar = f"Ubah teks berikut menjadi bahasa laporan kedinasan yang sangat formal, profesional, baku, dan cocok untuk dokumen appraisal properti resmi: '{teks_input_sidebar}'"
                 elif "Tata Bahasa" in opsi_ai_sidebar:
@@ -83,23 +114,30 @@ if st.sidebar.button("⚡ Proses AI Sekarang", type="primary", use_container_wid
                 else:
                     prompt_sidebar = f"Jawab pertanyaan berikut secara singkat, padat, dan profesional dalam konteks penilaian dan optimalisasi aset properti: '{teks_input_sidebar}'"
                 
-                # Menggunakan Gemini Flash agar respons di sidebar super cepat
-                model_sidebar = genai.GenerativeModel("models/gemini-1.5-flash")
-                res_sidebar = model_sidebar.generate_content(prompt_sidebar)
+                semua_model = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+                model_kandidat = sorted([m for m in semua_model if not any(x in m.lower() for x in ['tts', 'audio', 'vision', 'embedding', 'aqa', 'imagen'])], key=lambda x: ('flash' in x, '1.5' in x), reverse=True)
+                
+                res_sidebar = None
+                for nama_model in model_kandidat:
+                    try:
+                        model_sidebar = genai.GenerativeModel(model_name=nama_model)
+                        res = model_sidebar.generate_content(prompt_sidebar)
+                        if res and res.text:
+                            res_sidebar = res
+                            break
+                    except: continue
                 
                 if res_sidebar and res_sidebar.text:
                     st.session_state.hasil_sidebar = res_sidebar.text
                 else:
-                    st.sidebar.error("❌ Gagal mendapatkan respons dari AI.")
+                    st.sidebar.error("❌ Gagal mendapatkan respons AI.")
             except Exception as e:
                 st.sidebar.error(f"❌ Error AI: {e}")
 
-# Menampilkan hasil AI di sidebar dengan fitur 1-Klik Copas
 if "hasil_sidebar" in st.session_state:
-    st.sidebar.markdown("💡 **Hasil AI (Klik ikon di kanan atas kotak untuk Copas):**")
+    st.sidebar.markdown("💡 **Hasil AI (Klik ikon copas di kanan kotak):**")
     st.sidebar.code(st.session_state.hasil_sidebar, language="text")
-    
-    if st.sidebar.button("🗑️ Hapus / Bersihkan Hasil", use_container_width=True):
+    if st.sidebar.button("🗑️ Bersihkan Hasil", use_container_width=True):
         del st.session_state.hasil_sidebar
         st.rerun()
 
@@ -494,9 +532,9 @@ with tab3:
         st.dataframe(df_export[["Nama_Aset", "Lat", "Lng"]], use_container_width=True)
         st.markdown("---")
         
-        # 1. TOMBOL SIMPAN KE GSHEET
+        # 1. TOMBOL SIMPAN KE GSHEET (DENGAN STEMPEL USERNAME)
         st.subheader("☁️ Simpan ke Cloud Database (Google Sheets)")
-        st.write("Tekan tombol ini untuk menambahkan seluruh aset di atas ke baris paling bawah di Google Sheet milikmu secara otomatis:")
+        st.write(f"Tekan tombol ini untuk menambahkan seluruh aset di atas ke database atas nama **{st.session_state.username}**:")
         
         if st.button("🚀 Simpan Permanen ke Google Sheets", type="primary", use_container_width=True):
             try:
@@ -508,8 +546,10 @@ with tab3:
                         start_id = len(existing_data)
                         
                         for idx_row, row_dict in enumerate(data_for_csv):
+                            # MENYELIPKAN USERNAME SAAT PENYIMPANAN KE GSHEET
                             row_data = [
                                 start_id + idx_row,
+                                st.session_state.username, # <--- STEMPEL PEMILIK DATA
                                 row_dict["Nama_Aset"],
                                 row_dict["Lat"],
                                 row_dict["Lng"],
@@ -523,20 +563,31 @@ with tab3:
                             ]
                             sheet.append_row(row_data)
                             
-                    st.success("🎉 Berhasil! Semua aset di atas telah sukses disimpan ke dalam Google Sheets secara permanen!")
+                    st.success("🎉 Berhasil! Semua aset di atas telah sukses disimpan ke Google Sheets atas nama akunmu!")
             except Exception as e:
                 st.error(f"❌ Gagal simpan ke GSheet: {e}")
-                st.info("💡 Tips: Jika error [403] Drive API, pastikan kamu sudah mengaktifkan Google Drive API lewat link di pesan error sebelumnya.")
 
-        # 2. FITUR MELIHAT LIVE DATABASE GSHEET
-        with st.expander("📖 Klik di sini untuk melihat Isi Live Database Google Sheets Kamu"):
+        # 2. FITUR MELIHAT LIVE DATABASE DENGAN FILTER PRIVASI (RBAC)
+        with st.expander("📖 Klik di sini untuk melihat Isi Live Database Google Sheets"):
             try:
                 client_view = get_gspread_client()
                 if client_view:
                     sheet_view = client_view.open("Database_Aset_Negara").sheet1
                     records = sheet_view.get_all_records()
                     if records:
-                        st.dataframe(pd.DataFrame(records), use_container_width=True)
+                        df_records = pd.DataFrame(records)
+                        
+                        # --- LOGIKA FILTER PRIVASI (ADMIN VS USER BIASA) ---
+                        if st.session_state.role == "admin":
+                            st.info("👑 **Mode Admin:** Menampilkan seluruh data aset dari semua appraiser.")
+                            st.dataframe(df_records, use_container_width=True)
+                        else:
+                            st.info(f"👤 **Mode Appraiser:** Hanya menampilkan data aset yang disimpan oleh akunmu (**{st.session_state.username}**).")
+                            if 'Username' in df_records.columns:
+                                df_filtered = df_records[df_records['Username'] == st.session_state.username]
+                                st.dataframe(df_filtered, use_container_width=True)
+                            else:
+                                st.warning("⚠️ Kolom 'Username' belum ditambahkan di Google Sheet. Admin melihat semua data.")
                     else:
                         st.write("Database di Google Sheets masih kosong (baru ada baris judul).")
             except Exception as e_view:
@@ -553,7 +604,7 @@ with tab3:
             st.download_button(
                 label="📥 Unduh Format CSV (Canva Bulk Create Ready)",
                 data=csv_data,
-                file_name="laporan_aset_canva.csv",
+                file_name=f"laporan_aset_{st.session_state.username}_canva.csv",
                 mime="text/csv",
                 use_container_width=True
             )
@@ -567,7 +618,7 @@ with tab3:
             st.download_button(
                 label="📥 Unduh Format Excel (.xlsx) untuk Arsip Kantor",
                 data=excel_data,
-                file_name="laporan_aset_appraisal.xlsx",
+                file_name=f"laporan_aset_{st.session_state.username}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
             )
