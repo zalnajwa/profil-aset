@@ -6,12 +6,78 @@ import google.generativeai as genai
 from geopy.geocoders import Nominatim
 from io import BytesIO
 
-# --- 1. KONFIGURASI HALAMAN ---
+# ==========================================
+# --- 1. KONFIGURASI HALAMAN & TEMA KORPORAT ---
+# ==========================================
 st.set_page_config(
     page_title="Sistem Analisis Aset Properti Pro",
     page_icon="🏢",
     layout="wide"
 )
+
+# CUSTOM CSS: DESAIN KORPORAT (DEEP NAVY & GOLD ACCENT)
+st.markdown("""
+<style>
+    /* Tema Dasar Halaman */
+    .stApp {
+        background-color: #f8f9fa;
+        color: #212529;
+    }
+    
+    /* Style Kotak Kontainer (Cards) */
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        background-color: #ffffff;
+        border: 1.5px solid #0b2545 !important;
+        border-radius: 10px !important;
+        box-shadow: 0 4px 6px -1px rgba(11, 37, 69, 0.1), 0 2px 4px -1px rgba(11, 37, 69, 0.06);
+        padding: 10px;
+        margin-bottom: 15px;
+    }
+    
+    /* Judul Bab dalam Kartu bergaya Corporate Pill */
+    h3, h4 {
+        color: #0b2545 !important;
+        font-weight: 700 !important;
+        border-bottom: 2px solid #d4af37;
+        padding-bottom: 8px;
+        margin-bottom: 12px;
+    }
+    
+    /* Tombol Utama (Primary) - Gold / Navy */
+    button[kind="primary"] {
+        background: linear-gradient(135deg, #0b2545 0%, #134074 100%) !important;
+        color: #ffffff !important;
+        border: 1px solid #d4af37 !important;
+        border-radius: 6px !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease;
+    }
+    button[kind="primary"]:hover {
+        background: linear-gradient(135deg, #134074 0%, #0b2545 100%) !important;
+        box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3) !important;
+    }
+    
+    /* Tombol Sekunder - Clean Border */
+    button[kind="secondary"] {
+        border: 1.5px solid #0b2545 !important;
+        color: #0b2545 !important;
+        border-radius: 6px !important;
+        font-weight: 600 !important;
+    }
+    button[kind="secondary"]:hover {
+        background-color: #0b2545 !important;
+        color: #ffffff !important;
+    }
+    
+    /* Expander Styling */
+    .streamlit-expanderHeader {
+        background-color: #eef4f8 !important;
+        border-radius: 6px !important;
+        color: #0b2545 !important;
+        font-weight: 600 !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 def get_gspread_client():
     scope = [
@@ -40,10 +106,13 @@ def clean_section_body(text):
         lines.pop(0)
     return '\n'.join(lines).strip()
 
-# --- 2. SESSION STATE ---
+# ==========================================
+# --- 2. SESSION STATE & DRAFT LOKAL ---
+# ==========================================
 if 'buffer_laporan' not in st.session_state: 
     st.session_state.buffer_laporan = []
 
+# DRAFT LOKAL ABADI: Mengunci laporan di browser agar tidak hilang saat sinyal putus
 if 'laporan_aktif' not in st.session_state:
     st.session_state.laporan_aktif = None
 
@@ -60,9 +129,11 @@ if 'is_logged_in' not in st.session_state:
     st.session_state.role = ""
     st.session_state.nama_user = ""
 
-# --- 3. SISTEM LOGIN MULTI-USER & ASISTEN SIDEBAR ---
-st.title("🏢 Sistem Analisis & Appraisal Aset Properti")
-st.write("Aplikasi internal untuk generate laporan analisis lingkungan, estimasi harga, dan aksesibilitas sebuah aset secara mendalam.")
+# ==========================================
+# --- 3. SISTEM LOGIN & ASISTEN SIDEBAR ---
+# ==========================================
+st.markdown("<h1 style='text-align: center; color: #0b2545;'>🏢 Sistem Analisis & Appraisal Aset Properti</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 1.1em; color: #495057;'>Platform Internal DJKN / KPKNL untuk Analisis Lingkungan, Estimasi Nilai, & Highest and Best Use (HBU)</p>", unsafe_allow_html=True)
 st.markdown("---")
 
 if not st.session_state.is_logged_in:
@@ -83,13 +154,15 @@ if not st.session_state.is_logged_in:
         else:
             st.sidebar.error("❌ Username atau Password salah!")
             
-    st.warning("⚠️ Silakan login terlebih dahulu di menu sebelah kiri untuk mengakses sistem appraisal.")
+    st.warning("⚠️ Silakan login terlebih dahulu di menu sebelah kiri untuk mengakses platform appraisal.")
     st.stop()
 else:
     with st.sidebar.container(border=True):
         st.markdown(f"👤 **{st.session_state.nama_user}**")
-        st.markdown(f"🎯 Role: **{st.session_state.role.upper()}**")
+        badge_color = "#d4af37" if st.session_state.role == "admin" else "#134074"
+        st.markdown(f"🎯 Role: <span style='background-color:{badge_color}; color:white; padding:2px 8px; border-radius:12px; font-size:0.85em; font-weight:bold;'>{st.session_state.role.upper()}</span>", unsafe_allow_html=True)
     
+    # FITUR GANTI USERNAME MANDIRI + AUTO SYNC GSHEET
     with st.sidebar.expander("⚙️ Pengaturan Akun (Ganti Username)"):
         new_usn_input = st.text_input("Username Baru:", placeholder="Ketik username baru...")
         confirm_pass_input = st.text_input("Konfirmasi Password Saat Ini:", type="password")
@@ -154,8 +227,8 @@ opsi_ai_sidebar = st.sidebar.selectbox(
 
 teks_input_sidebar = st.sidebar.text_area(
     "Ketik teks / pertanyaanmu di sini:", 
-    height=120, 
-    placeholder="Contoh: Tanah ini bentuknya ngantong dan lokasinya agak masuk ke dalam gg..."
+    height=110, 
+    placeholder="Contoh: Tanah ini bentuknya ngantong dan lokasinya masuk gang..."
 )
 
 if st.sidebar.button("⚡ Proses AI Sekarang", type="primary", use_container_width=True):
@@ -196,10 +269,8 @@ if st.sidebar.button("⚡ Proses AI Sekarang", type="primary", use_container_wid
 
 if "hasil_sidebar" in st.session_state:
     st.sidebar.markdown("💡 **Hasil Asisten AI:**")
-    
     with st.sidebar.container(border=True):
         st.sidebar.markdown(st.session_state.hasil_sidebar)
-    
     with st.sidebar.expander("📋 Klik di sini untuk Copas Teks"):
         st.text_area(
             "Blok teks di bawah ini (Ctrl+A -> Ctrl+C):", 
@@ -207,19 +278,20 @@ if "hasil_sidebar" in st.session_state:
             height=120, 
             label_visibility="collapsed"
         )
-    
     if st.sidebar.button("🗑️ Bersihkan Hasil", use_container_width=True):
         del st.session_state.hasil_sidebar
         st.rerun()
 
+# ==========================================
 # --- 4. TAB SETUP ---
-tab1, tab2, tab3 = st.tabs(["🚀 1. Generate", "📝 2. Review & Edit", "💾 3. Database"])
+# ==========================================
+tab1, tab2, tab3 = st.tabs(["🚀 1. Generate & Identitas Aset", "📝 2. Review & Refinement", "💾 3. Database & Manajemen"])
 
 # ==========================================
-# --- TAB 1: GENERATE ---
+# --- TAB 1: GENERATE & IDENTITAS ASET ---
 # ==========================================
 with tab1:
-    st.header("Generate Laporan Baru")
+    st.markdown("### 🔍 Input Data & Parameter Aset")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -245,7 +317,7 @@ with tab1:
         informasi_tambahan = st.text_area(
             "📝 Catatan Kondisi Lapangan & Informasi Tambahan (Opsional):", 
             value="", 
-            placeholder="Contoh: Berada di pinggir jalan raya, bentuk tanah ngantong, ada sisa bangunan...",
+            placeholder="Contoh: Berada di pinggir jalan raya, bentuk tanah ngantong, ada sisa bangunan lama...",
             height=130
         )
 
@@ -412,6 +484,7 @@ with tab1:
                     pesan_error_terakhir = str(e)
                     continue
 
+            # MENGUNCI KE MEMORI ABADI (DRAFT LOKAL ANTI HILANG SAAT SINYAL PUTUS / KLIK SIDEBAR)
             if response and response.text:
                 teks_laporan = response.text
                 if "### 💰 ESTIMASI HARGA PASAR" in teks_laporan:
@@ -432,17 +505,19 @@ with tab1:
                     "rekomendasi": clean_section_body(bagian[5]) if len(bagian) > 5 else "",
                     "kesimpulan": clean_section_body(bagian[6]) if len(bagian) > 6 else "",
                 }
-                st.success("✅ Laporan Berhasil Disusun!")
+                st.success("✅ Laporan Berhasil Disusun & Disimpan di Draft Lokal!")
             else:
                 st.error(f"❌ Gagal memproses laporan. Detail Error: {pesan_error_terakhir}")
 
+    # TAMPILAN KARTU KORPORAT DARI MEMORI ABADI
     if st.session_state.laporan_aktif:
         lap = st.session_state.laporan_aktif
+        
         with st.container(border=True):
             st.markdown("### 📌 IDENTITAS & LOKASI ASET")
             st.write(f"**Alamat Lengkap:** {lap['alamat']}")
             st.write(f"**Validasi Peta Satelit:** {lap['info_peta']}")
-            st.write("**Koordinat GPS (Klik ikon di kanan kotak untuk copas):**")
+            st.write("**Koordinat GPS:**")
             st.code(f"{lap['lat']}, {lap['lng']}", language="text")
             
             col_map, col_sat, col_earth = st.columns(3)
@@ -501,15 +576,15 @@ with tab1:
                     })
                     st.success("✅ Berhasil disimpan ke Review! Silakan buka Tab 2 (Review & Edit) di atas.")
         with col_btn2:
-            if st.button("🗑️ Hapus Laporan", use_container_width=True):
+            if st.button("🗑️ Hapus Draft", use_container_width=True):
                 st.session_state.laporan_aktif = None
                 st.rerun()
 
 # ==========================================
-# --- TAB 2: REVIEW & EDIT ---
+# --- TAB 2: REVIEW & REFINEMENT ---
 # ==========================================
 with tab2:
-    st.header("📝 Review & Refinement Laporan")
+    st.markdown("### 📝 Review & Refinement Laporan")
     if not st.session_state.buffer_laporan:
         st.info("💡 Belum ada laporan di Buffer. Silakan Generate dan Pindahkan dulu dari Tab 1.")
     else:
@@ -528,7 +603,7 @@ with tab2:
             st.markdown(aset['data'].get('swot_contekan', 'Tidak ada data SWOT.'))
             
         st.markdown(f"### 📑 Memoles Isi Laporan: **{aset['nama']}**")
-        st.write("Silakan klik ikon **Pensil (✏️)** di pojok kanan untuk mengedit isi bagian tersebut. Judul bab tidak akan berubah atau ganda di Excel.")
+        st.write("Silakan klik ikon **Pensil (✏️)** di pojok kanan untuk mengedit isi bagian tersebut. Judul bab statis agar tidak ganda di Excel.")
         
         def edit_box(field_key, label_judul, index):
             unique_key = f"{field_key}_{index}"
@@ -589,16 +664,16 @@ with tab2:
             aset['data']['rekomendasi'] = rekomendasi_final
             aset['data']['kesimpulan'] = kesimpulan_final
             
-            st.success("🎉 Laporan berhasil diperbarui! Silakan buka **Tab 3 (Database & Export)** di atas untuk mengunduh Excel/CSV atau simpan ke GSheet.")
+            st.success("🎉 Laporan berhasil diperbarui! Silakan buka **Tab 3 (Database & Manajemen)** di atas untuk mengunduh Excel/CSV atau simpan ke GSheet.")
 
 # ==========================================
-# --- TAB 3: DATABASE & EXPORT ---
+# --- TAB 3: DATABASE & MANAJEMEN ---
 # ==========================================
 with tab3:
-    st.header("💾 Pusat Database & Export Aset")
+    st.markdown("### 💾 Pusat Database & Manajemen Aset")
     
     if not st.session_state.buffer_laporan:
-        st.info("💡 Belum ada data aset yang siap di-export. Selesaikan laporan di Tab 1 & Tab 2 terlebih dahulu.")
+        st.info("💡 Belum ada data aset di sesi aktif ini untuk di-export. Selesaikan laporan di Tab 1 & Tab 2 terlebih dahulu.")
     else:
         st.subheader("📑 Daftar Aset Siap Simpan / Export")
         
@@ -619,7 +694,7 @@ with tab3:
         st.dataframe(df_export[["Nama_Aset", "Lat", "Lng"]], use_container_width=True)
         st.markdown("---")
         
-        # 1. TOMBOL SIMPAN KE GSHEET (DENGAN SISTEM SMART SAVE / ANTI-DUPLIKAT)
+        # 1. TOMBOL SIMPAN KE GSHEET (SMART SAVE / ANTI-DUPLIKAT)
         st.subheader("☁️ Simpan ke Cloud Database (Google Sheets)")
         st.write(f"Tekan tombol ini untuk menambahkan/memperbarui seluruh aset di atas ke database atas nama **{st.session_state.username}**:")
         
@@ -636,7 +711,6 @@ with tab3:
                             target_nama = str(row_dict["Nama_Aset"]).strip().lower()
                             
                             found_row_idx = None
-                            # Cek apakah (Username + Nama_Aset) sudah ada di GSheet (Mulai baris ke-2 / index 1)
                             for r_idx, row in enumerate(existing_data[1:], start=2):
                                 if len(row) > 2:
                                     sheet_usn = str(row[1]).strip().lower()
@@ -646,7 +720,6 @@ with tab3:
                                         break
                             
                             if found_row_idx:
-                                # Jika SUDAH ADA: Update baris yang sama (Anti-Duplikat)
                                 existing_id = existing_data[found_row_idx - 1][0]
                                 row_data = [
                                     existing_id,
@@ -662,7 +735,6 @@ with tab3:
                                 ]
                                 sheet.update(f"A{found_row_idx}:J{found_row_idx}", [row_data])
                             else:
-                                # Jika BELUM ADA: Buat baris baru (Append)
                                 start_id = len(existing_data) + 1
                                 row_data = [
                                     start_id,
@@ -677,43 +749,13 @@ with tab3:
                                     row_dict["Kesimpulan"]
                                 ]
                                 sheet.append_row(row_data)
-                                existing_data.append(row_data) # Tambah ke list lokal agar batch loop berikutnya tahu
+                                existing_data.append(row_data)
                             
                     st.success("🎉 Berhasil! Data aset telah diperbarui secara cerdas di Google Sheets tanpa duplikat.")
             except Exception as e:
                 st.error(f"❌ Gagal simpan ke GSheet: {e}")
 
-        # 2. FITUR MELIHAT LIVE DATABASE DENGAN FILTER PRIVASI (RBAC)
-        with st.expander("📖 Klik di sini untuk melihat Isi Live Database Google Sheets"):
-            try:
-                client_view = get_gspread_client()
-                if client_view:
-                    sheet_view = client_view.open("Database_Aset_Negara").sheet1
-                    records = sheet_view.get_all_records()
-                    if records:
-                        df_records = pd.DataFrame(records)
-                        
-                        if 'Username' in df_records.columns:
-                            df_records['Username'] = df_records['Username'].astype(str).str.strip().str.lower()
-                            
-                            if st.session_state.role == "admin":
-                                st.info("👑 **Mode Admin:** Menampilkan seluruh data aset dari semua appraiser.")
-                                st.dataframe(df_records, use_container_width=True)
-                            else:
-                                current_usn_str = str(st.session_state.username).strip().lower()
-                                st.info(f"👤 **Mode Appraiser:** Hanya menampilkan data aset milikmu (**{current_usn_str}**).")
-                                df_filtered = df_records[df_records['Username'] == current_usn_str]
-                                st.dataframe(df_filtered, use_container_width=True)
-                        else:
-                            st.warning("⚠️ Kolom 'Username' belum ditambahkan di Google Sheet. Admin melihat semua data.")
-                    else:
-                        st.write("Database di Google Sheets masih kosong (baru ada baris judul).")
-            except Exception as e_view:
-                st.write(f"Belum bisa memuat database: {e_view}")
-
-        st.markdown("---")
-
-        # 3. TOMBOL DOWNLOAD EXCEL & CSV (BERSIH)
+        # 2. FITUR DOWNLOAD EXCEL & CSV
         st.subheader("📥 Unduh File untuk Laporan Manual & Canva")
         col_dl1, col_dl2 = st.columns(2)
         
@@ -740,3 +782,73 @@ with tab3:
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
             )
+
+    st.markdown("---")
+    
+    # 3. LIVE DATABASE DENGAN LIMIT 50 TERBARU (ANTI-LEMOT) & FITUR HAPUS DATA
+    st.subheader("📊 Live Database & Manajemen Arsip Cloud")
+    
+    with st.expander("📖 Klik di sini untuk melihat & memanajemen Isi Live Database Google Sheets"):
+        try:
+            client_view = get_gspread_client()
+            if client_view:
+                sheet_view = client_view.open("Database_Aset_Negara").sheet1
+                records = sheet_view.get_all_records()
+                
+                if records:
+                    df_records = pd.DataFrame(records)
+                    
+                    if 'Username' in df_records.columns:
+                        df_records['Username'] = df_records['Username'].astype(str).str.strip().str.lower()
+                        
+                        if st.session_state.role == "admin":
+                            st.info("👑 **Mode Admin:** Menampilkan maksimal 50 data aset terbaru dari semua appraiser (Anti-Lemot).")
+                            df_show = df_records.tail(50).iloc[::-1] # Ambil 50 terakhir & balik urutan biar yg baru di atas
+                            st.dataframe(df_show, use_container_width=True)
+                        else:
+                            current_usn_str = str(st.session_state.username).strip().lower()
+                            st.info(f"👤 **Mode Appraiser:** Menampilkan maksimal 50 data aset terbaru milikmu (**{current_usn_str}**).")
+                            df_filtered = df_records[df_records['Username'] == current_usn_str]
+                            df_show = df_filtered.tail(50).iloc[::-1]
+                            st.dataframe(df_show, use_container_width=True)
+                            
+                        # FITUR BARU: HAPUS ASET DARI CLOUD TANPA BUKA GSHEET
+                        st.markdown("#### 🗑️ Hapus Aset dari Database Cloud")
+                        st.write("Pilih nama aset yang ingin kamu hapus secara permanen dari server Google Sheets:")
+                        
+                        daftar_pilihan = df_show['Nama_Aset'].tolist() if not df_show.empty else []
+                        if daftar_pilihan:
+                            aset_yg_dihapus = st.selectbox("Pilih Aset untuk Dihapus:", daftar_pilihan, key="delete_select")
+                            
+                            if st.button("🚨 Hapus Aset Terpilih Secara Permanen", type="secondary"):
+                                with st.spinner("⏳ Menghapus baris dari server Google Sheets..."):
+                                    all_vals = sheet_view.get_all_values()
+                                    target_row_idx = None
+                                    
+                                    for r_idx, row in enumerate(all_vals[1:], start=2):
+                                        if len(row) > 2:
+                                            sheet_usn = str(row[1]).strip().lower()
+                                            sheet_nama = str(row[2]).strip().lower()
+                                            
+                                            # Cek hak hapus: Admin bebas hapus, User cuma bisa hapus miliknya
+                                            if st.session_state.role == "admin" and sheet_nama == str(aset_yg_dihapus).strip().lower():
+                                                target_row_idx = r_idx
+                                                break
+                                            elif sheet_usn == str(st.session_state.username).strip().lower() and sheet_nama == str(aset_yg_dihapus).strip().lower():
+                                                target_row_idx = r_idx
+                                                break
+                                                
+                                    if target_row_idx:
+                                        sheet_view.delete_rows(target_row_idx)
+                                        st.success(f"✅ Berhasil menghapus '{aset_yg_dihapus}' dari Google Sheets!")
+                                        st.rerun()
+                                    else:
+                                        st.error("❌ Gagal menemukan baris data di server atau kamu tidak punya izin menghapusnya.")
+                        else:
+                            st.write("Tidak ada aset yang tersedia untuk dihapus.")
+                    else:
+                        st.warning("⚠️ Kolom 'Username' belum ditambahkan di Google Sheet.")
+                else:
+                    st.write("Database di Google Sheets masih kosong (baru ada baris judul).")
+        except Exception as e_view:
+            st.write(f"Belum bisa memuat database: {e_view}")
