@@ -68,9 +68,13 @@ if not st.session_state.is_logged_in:
             
     st.warning("⚠️ Silakan login terlebih dahulu di menu sebelah kiri untuk mengakses sistem appraisal.")
     st.stop()
+# --- (Tampilan setelah berhasil login di sidebar) ---
 else:
-    # TAMPILAN JIKA SUDAH LOGIN DI SIDEBAR
-    st.sidebar.success(f"👤 **{st.session_state.nama_user}**\n\n🎯 Role: **{st.session_state.role.upper()}**")
+    # TAMPILAN KARTU PROFIL RATA KIRI & RAPI
+    with st.sidebar.container(border=True):
+        st.markdown(f"👤 **{st.session_state.nama_user}**")
+        st.markdown(f"🎯 Role: **{st.session_state.role.upper()}**")
+        
     if st.sidebar.button("🚪 Logout", use_container_width=True):
         st.session_state.is_logged_in = False
         st.rerun()
@@ -134,9 +138,24 @@ if st.sidebar.button("⚡ Proses AI Sekarang", type="primary", use_container_wid
             except Exception as e:
                 st.sidebar.error(f"❌ Error AI: {e}")
 
+# --- GANTI BLOK INI (Menampilkan hasil AI di sidebar) ---
 if "hasil_sidebar" in st.session_state:
-    st.sidebar.markdown("💡 **Hasil AI (Klik ikon copas di kanan kotak):**")
-    st.sidebar.code(st.session_state.hasil_sidebar, language="text")
+    st.sidebar.markdown("💡 **Hasil Asisten AI:**")
+    
+    # 1. TAMPILAN UTAMA: Menggunakan Markdown rapi (font normal, auto-wrap, huruf tebal aktif)
+    with st.sidebar.container(border=True):
+        st.sidebar.markdown(st.session_state.hasil_sidebar)
+    
+    # 2. FITUR COPAS: Expander khusus supaya mudah di-copy tanpa merusak tampilan utama
+    with st.sidebar.expander("📋 Klik di sini untuk Copas Teks"):
+        st.text_area(
+            "Blok teks di bawah ini (Ctrl+A -> Ctrl+C):", 
+            value=st.session_state.hasil_sidebar, 
+            height=120, 
+            label_visibility="collapsed"
+        )
+    
+    # Tombol Hapus
     if st.sidebar.button("🗑️ Bersihkan Hasil", use_container_width=True):
         del st.session_state.hasil_sidebar
         st.rerun()
