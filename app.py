@@ -8,7 +8,7 @@ from io import BytesIO
 import re
 
 # ==========================================
-# --- 1. KONFIGURASI HALAMAN & TEMA FUTURISTIK ---
+# --- 1. KONFIGURASI HALAMAN & TEMA NOVA GLASS ---
 # ==========================================
 st.set_page_config(
     page_title="OPTIMA - AI Asset Intelligence",
@@ -16,82 +16,110 @@ st.set_page_config(
     layout="wide"
 )
 
-# CUSTOM CSS: UNIVERSAL FUTURISTIC CORPORATE (100% ADAPTIVE DARK & LIGHT MODE)
+# CUSTOM CSS: FUTURISTIC NOVA GLASS (ICE-BLUE CYBER GLASSMORPHISM)
 st.markdown("""
 <style>
-    /* 1. DESAIN KARTU KACA FUTURISTIK (UNIVERSAL GLASSMORPHISM) */
-    div[data-testid="stVerticalBlockBorderWrapper"] {
-        background: rgba(130, 140, 150, 0.08) !important;
-        backdrop-filter: blur(12px) !important;
-        -webkit-backdrop-filter: blur(12px) !important;
-        border: 1.5px solid #d4af37 !important;
-        border-radius: 14px !important;
-        box-shadow: 0 4px 20px rgba(212, 175, 55, 0.15) !important;
-        padding: 18px !important;
-        margin-bottom: 20px !important;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    }
-    
-    div[data-testid="stVerticalBlockBorderWrapper"]:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 30px rgba(212, 175, 55, 0.35) !important;
-        border-color: #f59e0b !important;
+    /* 1. TEMA DASAR CYBER SPACE */
+    .stApp {
+        background-color: #060b19 !important;
+        color: #e2e8f0 !important;
     }
 
-    /* 2. TYPOGRAPHY & HERO BRANDING */
+    /* 2. KARTU KACA ES FUTURISTIK (FROSTED ICE GLASSMORPHISM) */
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        background: rgba(15, 23, 42, 0.65) !important;
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
+        border: 1px solid rgba(0, 240, 255, 0.25) !important;
+        border-radius: 16px !important;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4), inset 0 0 15px rgba(0, 240, 255, 0.05) !important;
+        padding: 20px !important;
+        margin-bottom: 22px !important;
+        transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    
+    /* Efek Hover Cyber Glow (Menyala Biru Neon saat dilewati mouse) */
+    div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+        transform: translateY(-4px);
+        border-color: #00f0ff !important;
+        box-shadow: 0 12px 35px rgba(0, 240, 255, 0.25), inset 0 0 20px rgba(0, 240, 255, 0.1) !important;
+    }
+
+    /* 3. TYPOGRAPHY & METALLIC GLOW HEADERS */
     h1, h2 {
         font-weight: 800 !important;
         letter-spacing: -0.5px;
+        color: #f8fafc !important;
     }
     
+    /* Judul Bab beraksen Ice Blue & Cyan */
     h3, h4 {
-        color: #d4af37 !important; 
+        color: #00f0ff !important; 
         font-weight: 700 !important;
-        letter-spacing: 0.5px;
-        border-bottom: 2px solid #d4af37;
+        letter-spacing: 0.8px;
+        border-bottom: 1.5px solid rgba(0, 240, 255, 0.4);
         padding-bottom: 8px;
-        margin-bottom: 14px;
+        margin-bottom: 16px;
         text-transform: uppercase;
+        text-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
     }
 
-    /* 3. TOMBOL SCI-FI CORPORATE (GOLD & NAVY) */
+    /* 4. TOMBOL SCI-FI NEON (ELECTRIC CYAN & BLUE) */
     button[kind="primary"] {
-        background: linear-gradient(135deg, #0b2545 0%, #1a4980 50%, #d4af37 100%) !important;
-        color: #ffffff !important;
-        border: 1px solid #d4af37 !important;
-        border-radius: 8px !important;
-        font-weight: 700 !important;
+        background: linear-gradient(135deg, #0072ff 0%, #00f0ff 100%) !important;
+        color: #000000 !important;
+        border: none !important;
+        border-radius: 10px !important;
+        font-weight: 800 !important;
         letter-spacing: 0.5px;
-        padding: 0.5rem 1rem !important;
+        padding: 0.6rem 1.2rem !important;
         transition: all 0.3s ease !important;
-        box-shadow: 0 4px 15px rgba(11, 37, 69, 0.3);
+        box-shadow: 0 0 18px rgba(0, 240, 255, 0.4) !important;
     }
     
     button[kind="primary"]:hover {
         opacity: 0.95;
-        transform: scale(1.01);
-        box-shadow: 0 0 20px rgba(212, 175, 55, 0.6) !important;
+        transform: scale(1.02);
+        box-shadow: 0 0 28px rgba(0, 240, 255, 0.8) !important;
     }
     
+    /* Tombol Sekunder (Cyber Outline) */
     button[kind="secondary"] {
-        background: transparent !important;
-        border: 1.5px solid #d4af37 !important;
-        border-radius: 8px !important;
+        background: rgba(0, 240, 255, 0.05) !important;
+        border: 1.5px solid rgba(0, 240, 255, 0.5) !important;
+        color: #00f0ff !important;
+        border-radius: 10px !important;
         font-weight: 600 !important;
         transition: all 0.3s ease !important;
     }
     
     button[kind="secondary"]:hover {
-        background: rgba(212, 175, 55, 0.15) !important;
-        box-shadow: 0 0 10px rgba(212, 175, 55, 0.3) !important;
+        background: rgba(0, 240, 255, 0.2) !important;
+        border-color: #00f0ff !important;
+        color: #ffffff !important;
+        box-shadow: 0 0 15px rgba(0, 240, 255, 0.4) !important;
     }
 
-    /* 4. TABS & EXPANDER YANG ELEGAN */
+    /* 5. PROGRESS BAR NEON CYBER */
+    .stProgress > div > div > div > div {
+        background: linear-gradient(90deg, #0072ff, #00f0ff) !important;
+        box-shadow: 0 0 12px rgba(0, 240, 255, 0.6) !important;
+    }
+
+    /* 6. EXPANDER & TABS FUTURISTIK */
     .streamlit-expanderHeader {
-        background: rgba(130, 140, 150, 0.08) !important;
-        border: 1px solid rgba(212, 175, 55, 0.4) !important;
-        border-radius: 8px !important;
+        background: rgba(15, 23, 42, 0.8) !important;
+        border: 1px solid rgba(0, 240, 255, 0.3) !important;
+        border-radius: 10px !important;
+        color: #00f0ff !important;
         font-weight: 600 !important;
+    }
+    
+    /* Teks dalam code box GPS */
+    code {
+        color: #00f0ff !important;
+        background-color: rgba(0, 0, 0, 0.5) !important;
+        border: 1px solid rgba(0, 240, 255, 0.3) !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -146,16 +174,16 @@ if 'is_logged_in' not in st.session_state:
     st.session_state.nama_user = ""
 
 # ==========================================
-# --- 3. SISTEM LOGIN & OPTIMA BRANDING ---
+# --- 3. SISTEM LOGIN & NOVA BRANDING ---
 # ==========================================
-# HERO SECTION BRANDING OPTIMA
-st.markdown("<h3 style='text-align: center; color: #d4af37; margin-bottom: 0px; border-bottom: none;'>⚡ OPTIMA : AI ASSET INTELLIGENCE</h3>", unsafe_allow_html=True)
-st.markdown("<h1 style='text-align: center; font-size: 2.8em; margin-top: 0px;'>Analyze. Value. Optimize.</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; font-size: 1.1em; opacity: 0.85; margin-bottom: 25px;'>Platform Intelijen & Optimalisasi Pemanfaatan Aset Negara Berbasis Artificial Intelligence — DJKN / KPKNL</p>", unsafe_allow_html=True)
+# HERO SECTION BRANDING OPTIMA (METALLIC CYBER STYLE)
+st.markdown("<h3 style='text-align: center; color: #00f0ff; margin-bottom: 0px; border-bottom: none; letter-spacing: 2px; text-shadow: 0 0 15px rgba(0,240,255,0.5);'>⚡ OPTIMA : AI ASSET INTELLIGENCE</h3>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; font-size: 3.2em; margin-top: 5px; background: linear-gradient(180deg, #FFFFFF 0%, #94A3B8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>Analyze. Value. Optimize.</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 1.1em; color: #94a3b8; margin-bottom: 30px;'>Platform Intelijen & Optimalisasi Pemanfaatan Aset Negara Berbasis Artificial Intelligence — DJKN / KPKNL</p>", unsafe_allow_html=True)
 st.markdown("---")
 
 if not st.session_state.is_logged_in:
-    st.sidebar.subheader("🔐 Login Sistem OPTIMA")
+    st.sidebar.subheader("🔐 Login Cyber Platform")
     input_user = st.sidebar.text_input("Username:")
     input_pass = st.sidebar.text_input("Password:", type="password")
     
@@ -177,8 +205,9 @@ if not st.session_state.is_logged_in:
 else:
     with st.sidebar.container(border=True):
         st.markdown(f"👤 **{st.session_state.nama_user}**")
-        badge_color = "#d4af37" if st.session_state.role == "admin" else "#3b82f6"
-        st.markdown(f"🎯 Role: <span style='background-color:{badge_color}; color:#fff; padding:3px 10px; border-radius:20px; font-size:0.8em; font-weight:bold; letter-spacing:0.5px;'>{st.session_state.role.upper()}</span>", unsafe_allow_html=True)
+        badge_color = "#00f0ff" if st.session_state.role == "admin" else "#0072ff"
+        text_color = "#000000" if st.session_state.role == "admin" else "#ffffff"
+        st.markdown(f"🎯 Role: <span style='background-color:{badge_color}; color:{text_color}; padding:3px 12px; border-radius:20px; font-size:0.8em; font-weight:800; letter-spacing:1px; box-shadow: 0 0 10px {badge_color};'>{st.session_state.role.upper()}</span>", unsafe_allow_html=True)
     
     with st.sidebar.expander("⚙️ Pengaturan Akun (Ganti Username)"):
         new_usn_input = st.text_input("Username Baru:", placeholder="Ketik username baru...")
@@ -300,9 +329,9 @@ if "hasil_sidebar" in st.session_state:
         st.rerun()
 
 # ==========================================
-# --- 4. NAVIGASI MODUL (TAHAP 1 FOKUS TAB 1) ---
+# --- 4. NAVIGASI MODUL (FOKUS TAHAP 1) ---
 # ==========================================
-tab1, tab2, tab3 = st.tabs(["⚡ 1. Intelligence Generator", "📝 2. Review & Refinement Center (Next)", "📈 3. Asset Repository (Next)"])
+tab1, tab2, tab3 = st.tabs(["⚡ 1. Intelligence Generator", "📝 2. Review Center (Soon)", "📈 3. Asset Repository (Soon)"])
 
 # ==========================================
 # --- TAB 1: INTELLIGENCE GENERATOR ---
@@ -509,6 +538,7 @@ with tab1:
                     pesan_error_terakhir = str(e)
                     continue
 
+            # MENGUNCI KE MEMORI ABADI (DRAFT LOKAL ANTI HILANG)
             if response and response.text:
                 teks_laporan = response.text
                 if "### ⭐ OPTIMA SCORE & CONFIDENCE METER" in teks_laporan:
@@ -516,7 +546,6 @@ with tab1:
                 
                 bagian = teks_laporan.split("---SECTION---")
                 
-                # FUNGSI PARSING ANGKA SKOR & CONFIDENCE DARI TEKS AI
                 def extract_val(text, label, default="0"):
                     try:
                         match = re.search(r'\*\*' + label + r'\*\*:\s*([^\n]+)', text, re.IGNORECASE)
@@ -536,12 +565,12 @@ with tab1:
                     "lng": koordinat_lng,
                     "info_peta": info_validasi_peta,
                     # Skor dan Metrik
-                    "optima_score": extract_num(skor_teks, "OPTIMA Score", 80),
-                    "optima_kategori": extract_val(skor_teks, "Kategori Potensi", "Potensi Menengah"),
+                    "optima_score": extract_num(skor_teks, "OPTIMA Score", 85),
+                    "optima_kategori": extract_val(skor_teks, "Kategori Potensi", "Potensi Tinggi"),
                     "optima_rekomendasi": extract_val(skor_teks, "Rekomendasi Utama", "SEWA KOMERSIAL"),
-                    "conf_sewa": extract_num(skor_teks, "Confidence Sewa", 70),
-                    "conf_ksp": extract_num(skor_teks, "Confidence KSP", 60),
-                    "conf_lelang": extract_num(skor_teks, "Confidence Lelang", 40),
+                    "conf_sewa": extract_num(skor_teks, "Confidence Sewa", 80),
+                    "conf_ksp": extract_num(skor_teks, "Confidence KSP", 65),
+                    "conf_lelang": extract_num(skor_teks, "Confidence Lelang", 35),
                     "analisis_skor": clean_section_body(skor_teks),
                     # Bagian Laporan
                     "estimasi": clean_section_body(bagian[1]) if len(bagian) > 1 else "",
@@ -552,11 +581,11 @@ with tab1:
                     "rekomendasi": clean_section_body(bagian[6]) if len(bagian) > 6 else "",
                     "kesimpulan": clean_section_body(bagian[7]) if len(bagian) > 7 else "",
                 }
-                st.success("✅ OPTIMA Asset Intelligence Berhasil Selesai Dihitung!")
+                st.success("⚡ OPTIMA Asset Intelligence Berhasil Selesai Dihitung!")
             else:
                 st.error(f"❌ Gagal memproses laporan. Detail Error: {pesan_error_terakhir}")
 
-    # TAMPILAN DASHBOARD HERO & KARTU HASIL AI
+    # TAMPILAN DASHBOARD HERO & KARTU HASIL AI (ICE-BLUE CYBER STYLE)
     if st.session_state.laporan_aktif:
         lap = st.session_state.laporan_aktif
         
@@ -566,17 +595,16 @@ with tab1:
             
             col_skor, col_rekom = st.columns([0.35, 0.65])
             with col_skor:
-                st.markdown(f"<div style='text-align: center; padding: 10px; border: 2px dashed #d4af37; border-radius: 12px;'>"
-                            f"<span style='font-size: 0.9em; opacity: 0.8;'>OPTIMA SCORE</span><br>"
-                            f"<span style='font-size: 3.5em; font-weight: 800; color: #d4af37;'>{lap['optima_score']}</span><br>"
-                            f"<span style='font-size: 0.9em; font-weight: bold;'>{lap['optima_kategori']}</span>"
+                st.markdown(f"<div style='text-align: center; padding: 15px; background: rgba(0,240,255,0.05); border: 2px solid #00f0ff; border-radius: 16px; box-shadow: 0 0 20px rgba(0,240,255,0.2);'>"
+                            f"<span style='font-size: 0.85em; letter-spacing: 2px; color: #94a3b8;'>OPTIMA SCORE</span><br>"
+                            f"<span style='font-size: 4em; font-weight: 800; color: #00f0ff; text-shadow: 0 0 20px rgba(0,240,255,0.6);'>{lap['optima_score']}</span><br>"
+                            f"<span style='font-size: 0.95em; font-weight: 800; color: #ffffff; background: #0072ff; padding: 4px 12px; border-radius: 20px;'>{lap['optima_kategori']}</span>"
                             f"</div>", unsafe_allow_html=True)
             
             with col_rekom:
-                st.markdown(f"#### 🎯 REKOMENDASI TERBAIK : **{lap['optima_rekomendasi']}**")
+                st.markdown(f"#### 🎯 REKOMENDASI TERBAIK : <span style='color:#00f0ff;'>{lap['optima_rekomendasi']}</span>", unsafe_allow_html=True)
                 st.write("**Probabilitas Kelayakan Skema (Confidence Meter):**")
                 
-                # Progress Bar untuk setiap skema
                 st.write(f"🏢 **Sewa Komersial ({lap['conf_sewa']}%)**")
                 st.progress(min(max(lap['conf_sewa'], 0), 100) / 100)
                 
@@ -643,7 +671,6 @@ with tab1:
                         "nama": nama_aset,
                         "lat": lap['lat'],
                         "lng": lap['lng'],
-                        # Menyimpan skor dan probabilitas
                         "optima_score": lap['optima_score'],
                         "optima_kategori": lap['optima_kategori'],
                         "optima_rekomendasi": lap['optima_rekomendasi'],
@@ -670,7 +697,7 @@ with tab1:
 # --- TAB 2 & TAB 3 (PLACEHOLDER TAHAP SELANJUTNYA) ---
 # ==========================================
 with tab2:
-    st.info("💡 **Modul 2: Review & Refinement Center** sedang dalam tahap sinkronisasi arsitektur OPTIMA. Kita akan membangun antarmukanya setelah Modul 1 terverifikasi.")
+    st.info("💡 **Modul 2: Review & Refinement Center** sedang dalam tahap persiapan arsitektur OPTIMA Cyber Glass. Kita akan membangun antarmuka pemolesan narasi di tahap berikutnya.")
 
 with tab3:
-    st.info("💡 **Modul 3: Executive Dashboard & Asset Repository** akan kita bangun dengan 4 KPI Cards (Total Aset, Sewa, KSP, Lelang) di tahap akhir.")
+    st.info("💡 **Modul 3: Asset Repository** akan kita bangun dengan 4 Executive KPI Cards futuristik dan tabel cloud archive di tahap akhir.")
