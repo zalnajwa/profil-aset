@@ -5,75 +5,92 @@ import pandas as pd
 import google.generativeai as genai
 from geopy.geocoders import Nominatim
 from io import BytesIO
+import re
 
 # ==========================================
-# --- 1. KONFIGURASI HALAMAN & TEMA KORPORAT ---
+# --- 1. KONFIGURASI HALAMAN & TEMA FUTURISTIK ---
 # ==========================================
 st.set_page_config(
-    page_title="Sistem Analisis Aset Properti Pro",
-    page_icon="🏢",
+    page_title="OPTIMA - AI Asset Intelligence",
+    page_icon="⚡",
     layout="wide"
 )
 
-# CUSTOM CSS: DESAIN KORPORAT (DEEP NAVY & GOLD ACCENT)
+# CUSTOM CSS: UNIVERSAL FUTURISTIC CORPORATE (100% ADAPTIVE DARK & LIGHT MODE)
 st.markdown("""
 <style>
-    /* Tema Dasar Halaman */
-    .stApp {
-        background-color: #f8f9fa;
-        color: #212529;
-    }
-    
-    /* Style Kotak Kontainer (Cards) */
+    /* 1. DESAIN KARTU KACA FUTURISTIK (UNIVERSAL GLASSMORPHISM) */
     div[data-testid="stVerticalBlockBorderWrapper"] {
-        background-color: #ffffff;
-        border: 1.5px solid #0b2545 !important;
-        border-radius: 10px !important;
-        box-shadow: 0 4px 6px -1px rgba(11, 37, 69, 0.1), 0 2px 4px -1px rgba(11, 37, 69, 0.06);
-        padding: 10px;
-        margin-bottom: 15px;
+        background: rgba(130, 140, 150, 0.08) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        border: 1.5px solid #d4af37 !important;
+        border-radius: 14px !important;
+        box-shadow: 0 4px 20px rgba(212, 175, 55, 0.15) !important;
+        padding: 18px !important;
+        margin-bottom: 20px !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
     
-    /* Judul Bab dalam Kartu bergaya Corporate Pill */
+    div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 30px rgba(212, 175, 55, 0.35) !important;
+        border-color: #f59e0b !important;
+    }
+
+    /* 2. TYPOGRAPHY & HERO BRANDING */
+    h1, h2 {
+        font-weight: 800 !important;
+        letter-spacing: -0.5px;
+    }
+    
     h3, h4 {
-        color: #0b2545 !important;
+        color: #d4af37 !important; 
         font-weight: 700 !important;
+        letter-spacing: 0.5px;
         border-bottom: 2px solid #d4af37;
         padding-bottom: 8px;
-        margin-bottom: 12px;
+        margin-bottom: 14px;
+        text-transform: uppercase;
     }
-    
-    /* Tombol Utama (Primary) - Gold / Navy */
+
+    /* 3. TOMBOL SCI-FI CORPORATE (GOLD & NAVY) */
     button[kind="primary"] {
-        background: linear-gradient(135deg, #0b2545 0%, #134074 100%) !important;
+        background: linear-gradient(135deg, #0b2545 0%, #1a4980 50%, #d4af37 100%) !important;
         color: #ffffff !important;
         border: 1px solid #d4af37 !important;
-        border-radius: 6px !important;
-        font-weight: 600 !important;
-        transition: all 0.3s ease;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.5px;
+        padding: 0.5rem 1rem !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 15px rgba(11, 37, 69, 0.3);
     }
+    
     button[kind="primary"]:hover {
-        background: linear-gradient(135deg, #134074 0%, #0b2545 100%) !important;
-        box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3) !important;
+        opacity: 0.95;
+        transform: scale(1.01);
+        box-shadow: 0 0 20px rgba(212, 175, 55, 0.6) !important;
     }
     
-    /* Tombol Sekunder - Clean Border */
     button[kind="secondary"] {
-        border: 1.5px solid #0b2545 !important;
-        color: #0b2545 !important;
-        border-radius: 6px !important;
+        background: transparent !important;
+        border: 1.5px solid #d4af37 !important;
+        border-radius: 8px !important;
         font-weight: 600 !important;
-    }
-    button[kind="secondary"]:hover {
-        background-color: #0b2545 !important;
-        color: #ffffff !important;
+        transition: all 0.3s ease !important;
     }
     
-    /* Expander Styling */
+    button[kind="secondary"]:hover {
+        background: rgba(212, 175, 55, 0.15) !important;
+        box-shadow: 0 0 10px rgba(212, 175, 55, 0.3) !important;
+    }
+
+    /* 4. TABS & EXPANDER YANG ELEGAN */
     .streamlit-expanderHeader {
-        background-color: #eef4f8 !important;
-        border-radius: 6px !important;
-        color: #0b2545 !important;
+        background: rgba(130, 140, 150, 0.08) !important;
+        border: 1px solid rgba(212, 175, 55, 0.4) !important;
+        border-radius: 8px !important;
         font-weight: 600 !important;
     }
 </style>
@@ -112,7 +129,6 @@ def clean_section_body(text):
 if 'buffer_laporan' not in st.session_state: 
     st.session_state.buffer_laporan = []
 
-# DRAFT LOKAL ABADI: Mengunci laporan di browser agar tidak hilang saat sinyal putus
 if 'laporan_aktif' not in st.session_state:
     st.session_state.laporan_aktif = None
 
@@ -130,14 +146,16 @@ if 'is_logged_in' not in st.session_state:
     st.session_state.nama_user = ""
 
 # ==========================================
-# --- 3. SISTEM LOGIN & ASISTEN SIDEBAR ---
+# --- 3. SISTEM LOGIN & OPTIMA BRANDING ---
 # ==========================================
-st.markdown("<h1 style='text-align: center; color: #0b2545;'>🏢 Sistem Analisis & Appraisal Aset Properti</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; font-size: 1.1em; color: #495057;'>Platform Internal DJKN / KPKNL untuk Analisis Lingkungan, Estimasi Nilai, & Highest and Best Use (HBU)</p>", unsafe_allow_html=True)
+# HERO SECTION BRANDING OPTIMA
+st.markdown("<h3 style='text-align: center; color: #d4af37; margin-bottom: 0px; border-bottom: none;'>⚡ OPTIMA : AI ASSET INTELLIGENCE</h3>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; font-size: 2.8em; margin-top: 0px;'>Analyze. Value. Optimize.</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 1.1em; opacity: 0.85; margin-bottom: 25px;'>Platform Intelijen & Optimalisasi Pemanfaatan Aset Negara Berbasis Artificial Intelligence — DJKN / KPKNL</p>", unsafe_allow_html=True)
 st.markdown("---")
 
 if not st.session_state.is_logged_in:
-    st.sidebar.subheader("🔐 Login Sistem Internal")
+    st.sidebar.subheader("🔐 Login Sistem OPTIMA")
     input_user = st.sidebar.text_input("Username:")
     input_pass = st.sidebar.text_input("Password:", type="password")
     
@@ -154,15 +172,14 @@ if not st.session_state.is_logged_in:
         else:
             st.sidebar.error("❌ Username atau Password salah!")
             
-    st.warning("⚠️ Silakan login terlebih dahulu di menu sebelah kiri untuk mengakses platform appraisal.")
+    st.warning("⚠️ Silakan login terlebih dahulu di menu sebelah kiri untuk mengakses platform OPTIMA.")
     st.stop()
 else:
     with st.sidebar.container(border=True):
         st.markdown(f"👤 **{st.session_state.nama_user}**")
-        badge_color = "#d4af37" if st.session_state.role == "admin" else "#134074"
-        st.markdown(f"🎯 Role: <span style='background-color:{badge_color}; color:white; padding:2px 8px; border-radius:12px; font-size:0.85em; font-weight:bold;'>{st.session_state.role.upper()}</span>", unsafe_allow_html=True)
+        badge_color = "#d4af37" if st.session_state.role == "admin" else "#3b82f6"
+        st.markdown(f"🎯 Role: <span style='background-color:{badge_color}; color:#fff; padding:3px 10px; border-radius:20px; font-size:0.8em; font-weight:bold; letter-spacing:0.5px;'>{st.session_state.role.upper()}</span>", unsafe_allow_html=True)
     
-    # FITUR GANTI USERNAME MANDIRI + AUTO SYNC GSHEET
     with st.sidebar.expander("⚙️ Pengaturan Akun (Ganti Username)"):
         new_usn_input = st.text_input("Username Baru:", placeholder="Ketik username baru...")
         confirm_pass_input = st.text_input("Konfirmasi Password Saat Ini:", type="password")
@@ -209,11 +226,11 @@ else:
         st.rerun()
 
 # ==========================================================
-# --- ASISTEN PARAFRASE & TANYA AI DI SIDEBAR ---
+# --- ASISTEN OPTIMA DI SIDEBAR ---
 # ==========================================================
 st.sidebar.markdown("---")
-st.sidebar.subheader("🤖 Asisten Parafrase AI")
-st.sidebar.write("Rapikan kalimat kasar atau tanya AI tanpa meninggalkan halaman edit.")
+st.sidebar.subheader("🤖 OPTIMA Assistant")
+st.sidebar.write("Asisten intelijen AI untuk memoles narasi atau konsultasi keputusan HBU.")
 
 opsi_ai_sidebar = st.sidebar.selectbox(
     "Pilih Mode Asisten:", 
@@ -228,14 +245,14 @@ opsi_ai_sidebar = st.sidebar.selectbox(
 teks_input_sidebar = st.sidebar.text_area(
     "Ketik teks / pertanyaanmu di sini:", 
     height=110, 
-    placeholder="Contoh: Tanah ini bentuknya ngantong dan lokasinya masuk gang..."
+    placeholder="Contoh: Mengapa aset ini lebih disarankan untuk sewa daripada dilelang?"
 )
 
 if st.sidebar.button("⚡ Proses AI Sekarang", type="primary", use_container_width=True):
     if not teks_input_sidebar.strip():
         st.sidebar.warning("⚠️ Ketik teksnya dulu ya!")
     else:
-        with st.sidebar.status("⏳ AI sedang berpikir..."):
+        with st.sidebar.status("⏳ OPTIMA AI sedang berpikir..."):
             try:
                 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
                 if "Parafrase" in opsi_ai_sidebar:
@@ -245,7 +262,7 @@ if st.sidebar.button("⚡ Proses AI Sekarang", type="primary", use_container_wid
                 elif "Ringkas" in opsi_ai_sidebar:
                     prompt_sidebar = f"Buat ringkasan yang padat, lugas, dan langsung pada inti informasi penting dari teks berikut: '{teks_input_sidebar}'"
                 else:
-                    prompt_sidebar = f"Jawab pertanyaan berikut secara singkat, padat, dan profesional dalam konteks penilaian dan optimalisasi aset properti: '{teks_input_sidebar}'"
+                    prompt_sidebar = f"Jawab pertanyaan berikut secara singkat, padat, dan profesional dalam konteks penilaian dan optimalisasi aset properti (HBU): '{teks_input_sidebar}'"
                 
                 semua_model = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
                 model_kandidat = sorted([m for m in semua_model if not any(x in m.lower() for x in ['tts', 'audio', 'vision', 'embedding', 'aqa', 'imagen'])], key=lambda x: ('flash' in x, '1.5' in x), reverse=True)
@@ -268,7 +285,7 @@ if st.sidebar.button("⚡ Proses AI Sekarang", type="primary", use_container_wid
                 st.sidebar.error(f"❌ Error AI: {e}")
 
 if "hasil_sidebar" in st.session_state:
-    st.sidebar.markdown("💡 **Hasil Asisten AI:**")
+    st.sidebar.markdown("💡 **Hasil OPTIMA Assistant:**")
     with st.sidebar.container(border=True):
         st.sidebar.markdown(st.session_state.hasil_sidebar)
     with st.sidebar.expander("📋 Klik di sini untuk Copas Teks"):
@@ -283,15 +300,15 @@ if "hasil_sidebar" in st.session_state:
         st.rerun()
 
 # ==========================================
-# --- 4. TAB SETUP ---
+# --- 4. NAVIGASI MODUL (TAHAP 1 FOKUS TAB 1) ---
 # ==========================================
-tab1, tab2, tab3 = st.tabs(["🚀 1. Generate & Identitas Aset", "📝 2. Review & Refinement", "💾 3. Database & Manajemen"])
+tab1, tab2, tab3 = st.tabs(["⚡ 1. Intelligence Generator", "📝 2. Review & Refinement Center (Next)", "📈 3. Asset Repository (Next)"])
 
 # ==========================================
-# --- TAB 1: GENERATE & IDENTITAS ASET ---
+# --- TAB 1: INTELLIGENCE GENERATOR ---
 # ==========================================
 with tab1:
-    st.markdown("### 🔍 Input Data & Parameter Aset")
+    st.markdown("### 🔍 Parameter Input & Lokasi Aset")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -317,18 +334,18 @@ with tab1:
         informasi_tambahan = st.text_area(
             "📝 Catatan Kondisi Lapangan & Informasi Tambahan (Opsional):", 
             value="", 
-            placeholder="Contoh: Berada di pinggir jalan raya, bentuk tanah ngantong, ada sisa bangunan lama...",
+            placeholder="Contoh: Berada di pinggir jalan raya utama, bentuk tanah ngantong, ada sisa bangunan lama...",
             height=130
         )
 
     st.markdown("---")
 
-    if st.button("🚀 Generate Laporan Analisis Mendalam", type="primary", use_container_width=True):
+    if st.button("⚡ Generate OPTIMA Analysis & Score", type="primary", use_container_width=True):
         if not alamat_aset or koordinat_lat is None or koordinat_lng is None:
             st.error("⚠️ Mohon lengkapi Alamat Lengkap dan Koordinat (Latitude & Longitude) terlebih dahulu!")
             st.stop()
             
-        with st.spinner("⏳ Memindai koordinat satelit, melacak nama jalan & wilayah, serta menyusun tabel analisis..."):
+        with st.spinner("⏳ Memindai satelit, menghitung OPTIMA Score, & meracik rekomendasi HBU..."):
             try:
                 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
             except Exception as e:
@@ -336,7 +353,7 @@ with tab1:
                 st.stop()
 
             try:
-                geolocator = Nominatim(user_agent="appraisal_aset_djkn_pro", timeout=10)
+                geolocator = Nominatim(user_agent="optima_asset_intelligence", timeout=10)
                 lokasi_nyata = geolocator.reverse(f"{koordinat_lat}, {koordinat_lng}", exactly_one=True)
                 data_peta = lokasi_nyata.raw['address']
                 
@@ -351,48 +368,58 @@ with tab1:
                 kabupaten_asli = "Kabupaten setempat"
                 info_validasi_peta = f"Koordinat GPS: {koordinat_lat}, {koordinat_lng} (Gunakan pemetaan internal AI)"
 
+            # PROMPT MASTER OPTIMA DENGAN PENAMBAHAN METRIK SKOR & CONFIDENCE
             prompt = f"""
-            Kamu adalah Penilai Aset Negara (Appraiser) DJKN/KPKNL. Tugasmu membuat laporan analisis aset properti yang LUGAS, REALISTIS, DAN MEMBUMI (hindari bahasa akademis tinggi, ganti dengan bahasa sehari-hari yang profesional).
+            Kamu adalah Penilai Aset Negara (Appraiser) dan AI Asset Intelligence Senior di DJKN/KPKNL. Tugasmu membuat laporan analisis aset properti dan menghitung kelayakan pemanfaatannya (OPTIMA Score).
 
             DATA TARGET ASET:
             - Alamat/Lokasi: {alamat_aset}
             - Koordinat Titik: {koordinat_lat}, {koordinat_lng}
             - Catatan Lapangan: {informasi_tambahan if informasi_tambahan else "Tidak ada catatan khusus."}
-            
-            DATA VALIDASI SATELIT (NYATA DARI PETA - ACUAN MUTLAK):
-            - {info_validasi_peta}
+            - Data Peta Satelit: {info_validasi_peta}
 
             INSTRUKSI TEKNIS DAN FORMAT LAPORAN (WAJIB DIPATUHI):
-            1. BAHASA LUGAS & ANALISIS JALAN ASLI: Karena data satelit mengungkap aset berada di jalan "{nama_jalan_asli}", kamu WAJIB menganalisis berdasarkan kelas jalan tersebut! Perkirakan lebarnya secara logis dan jelaskan dampaknya terhadap nilai komersial aset!
-            2. ANTI HALUSINASI JARAK POI: Aset ini berada di {kecamatan_asli}, {kabupaten_asli}. JANGAN memanipulasi jarak! Jika fasilitas seperti Mall atau Rumah Sakit terdekat letaknya di pusat kota yang berjarak 15 km atau 30 km dari {kecamatan_asli}, tuliskan jujur 15 km atau 30 km! Carikan fasilitas yang BENAR-BENAR REAL di sekitar wilayah tersebut.
-            3. ANTI BIAS HUNIAN: Nilai potensi komersial, perdagangan, jasa, gudang, atau lelang.
-            4. PEMISAH BAB: Untuk keperluan tampilan website, WAJIB taruh kode ini tepat di antara setiap bab/bagian laporan:
+            1. BAHASA LUGAS & ANALISIS JALAN ASLI: Menganalisis berdasarkan kelas jalan "{nama_jalan_asli}". Jelaskan dampaknya terhadap nilai komersial aset dengan bahasa membumi dan profesional.
+            2. ANTI HALUSINASI JARAK POI: Aset ini di {kecamatan_asli}, {kabupaten_asli}. Jangan manipulasi jarak! Tuliskan jarak riil apa adanya.
+            3. ANTI BIAS HUNIAN: Nilai potensi komersial, perdagangan, jasa, ruko, gudang, wisata, atau lelang.
+            4. PEMISAH BAB: Untuk keperluan parsing, WAJIB taruh kode ini tepat di antara setiap bab/bagian laporan:
                ---SECTION---
 
             SUSUN LAPORAN DENGAN URUTAN PERSIS SEPERTI INI:
 
+            ### ⭐ OPTIMA SCORE & CONFIDENCE METER
+            - **OPTIMA Score:** [Tulis angka saja antara 50 sampai 98, contoh: 86]
+            - **Kategori Potensi:** [Pilih salah satu: Potensi Tinggi / Potensi Menengah / Potensi Spesifik]
+            - **Rekomendasi Utama:** [Pilih salah satu tegas: SEWA KOMERSIAL / KERJA SAMA PEMANFAATAN (KSP) / PENJUALAN LELANG]
+            - **Confidence Sewa:** [Angka probabilitas %, misal: 85]
+            - **Confidence KSP:** [Angka probabilitas %, misal: 70]
+            - **Confidence Lelang:** [Angka probabilitas %, misal: 40]
+            - **Analisis Singkat Skor:** (1-2 kalimat mengapa aset ini mendapatkan skor dan probabilitas tersebut berdasarkan lokasinya).
+
+            ---SECTION---
+
             ### 💰 ESTIMASI HARGA PASAR (INDIKATIF)
-            - **Estimasi Harga Tanah:** Rp [X] - Rp [Y] per m² (Penjelasan singkat pasaran harga tanah di sekitar lokasi/kecamatan ini).
+            - **Estimasi Harga Tanah:** Rp [X] - Rp [Y] per m² (Penjelasan singkat pasaran harga tanah di sekitar lokasi ini).
             - **Estimasi Harga Bangunan:** Rp [X] - Rp [Y] per m² (Jika ada bangunan/puing jelaskan, jika tanah kosong jelaskan biaya bangun standar per m² di area ini).
             - *Disclaimer Resmi:* Angka di atas merupakan estimasi awal berbasis data analitis AI untuk gambaran kasar, bukan merupakan nilai limit lelang atau nilai appraisal resmi. Diperlukan survei dan penilaian fisik langsung di lapangan.
 
             ---SECTION---
 
             ### 🏘️ KARAKTERISTIK DAN DINAMIKA KAWASAN
-            - **Klasifikasi & Tata Ruang Kawasan:** (Jelaskan dengan bahasa lugas apakah area ini kawasan perdagangan, permukiman, industri, atau campuran).
+            - **Klasifikasi & Tata Ruang Kawasan:** (Jelaskan apakah area ini kawasan perdagangan, permukiman, industri, wisata, atau campuran).
             - **Penggerak Ekonomi Lokal:** (Bisnis atau aktivitas ekonomi apa yang ramai dan hidup di area sekitar koordinat ini).
             - **Analisis Lingkungan & Sosial:** (Kondisi keamanan dan lingkungan sekitarnya).
 
             ---SECTION---
 
             ### 🛣️ EVALUASI AKSESIBILITAS DAN KONEKTIVITAS
-            - **Kondisi Akses Mikro (Jalan Depan Aset):** (WAJIB BERDASARKAN DATA SATELIT: Sebutkan nama jalan "{nama_jalan_asli}". Jelaskan perkiraan lebarnya dalam meter berdasarkan kelas jalan tersebut, apakah truk berat/kendaraan roda empat bisa simpangan, dan kondisi fisik perkerasannya).
+            - **Kondisi Akses Mikro (Jalan Depan Aset):** (Sebutkan nama jalan "{nama_jalan_asli}". Jelaskan perkiraan lebarnya dalam meter berdasarkan kelas jalan tersebut, apakah truk berat/kendaraan roda empat bisa simpangan, dan kondisi fisik perkerasannya).
             - **Konektivitas Makro & Titik Macet:** (Jalur penghubung ke jalan utama/arteri serta titik macet di jam sibuk).
 
             ---SECTION---
 
             ### 📍 PEMETAAN FASILITAS TERDEKAT (POI)
-            (Wajib tampilkan MINIMAL 3 FASILITAS untuk setiap kategori dalam bentuk TABEL MARKDOWN. Ingat: Jangan manipulasi jarak! Jika jauh, tulis jauh. Gunakan format tabel 5 kolom ini untuk KETIGA-ENAM kategori):
+            (Wajib tampilkan MINIMAL 3 FASILITAS untuk setiap kategori dalam bentuk TABEL MARKDOWN 5 kolom):
 
             #### A. Fasilitas Pendidikan
             | Nama Fasilitas | Estimasi Jarak | ETA Motor | ETA Mobil | Link Rute |
@@ -456,14 +483,12 @@ with tab1:
             ### 📝 KESIMPULAN AKHIR
             (Buat 1 paragraf kesimpulan eksekutif yang lugas, padat, dan langsung pada intinya. Wajib merangkum 3 hal berikut dalam alur yang natural:
             1. **Potensi:** Secara keseluruhan, aset ini paling potensial dikembangkan sebagai apa?
-            2. **Alasan Potensi:** Mengapa potensial? (Sebutkan keunggulan utama berdasarkan fakta analisis di atas, APA PUN ALASANNYA yang logis).
-            3. **Rekomendasi Skema Optimalisasi:** Berdasarkan karakteristik tersebut, apa skema pengelolaan yang paling direkomendasikan? (Secara tegas pilih skemanya: **Penjualan Lelang**, **Penyewaan Komersial (Sewa)**, atau **Kerja Sama Pemanfaatan (KSP)**).
-            
-            Hindari bahasa yang terlalu berbunga-bunga, langsung pada kesimpulan strategis yang meyakinkan pimpinan.)
+            2. **Alasan Potensi:** Mengapa potensial? (Sebutkan keunggulan utama berdasarkan fakta analisis di atas).
+            3. **Rekomendasi Skema Optimalisasi:** Secara tegas pilih skemanya: **Penjualan Lelang**, **Penyewaan Komersial (Sewa)**, atau **Kerja Sama Pemanfaatan (KSP)**).
 
             PERINGATAN KERAS: JANGAN TULIS PROSES BERPIKIRMU! JANGAN TULIS TEKS BAHASA INGGRIS APA PUN!
             LANGSUNG KELUARKAN LAPORAN DALAM BAHASA INDONESIA SEKARANG JUGA, DIAWALI PERSIS DENGAN TEKS:
-            ### 💰 ESTIMASI HARGA PASAR (INDIKATIF)
+            ### ⭐ OPTIMA SCORE & CONFIDENCE METER
             """
 
             config_patuh = {"temperature": 0.2}
@@ -484,35 +509,88 @@ with tab1:
                     pesan_error_terakhir = str(e)
                     continue
 
-            # MENGUNCI KE MEMORI ABADI (DRAFT LOKAL ANTI HILANG SAAT SINYAL PUTUS / KLIK SIDEBAR)
             if response and response.text:
                 teks_laporan = response.text
-                if "### 💰 ESTIMASI HARGA PASAR" in teks_laporan:
-                    teks_laporan = "### 💰 ESTIMASI HARGA PASAR" + teks_laporan.split("### 💰 ESTIMASI HARGA PASAR")[1]
+                if "### ⭐ OPTIMA SCORE & CONFIDENCE METER" in teks_laporan:
+                    teks_laporan = "### ⭐ OPTIMA SCORE & CONFIDENCE METER" + teks_laporan.split("### ⭐ OPTIMA SCORE & CONFIDENCE METER")[1]
                 
                 bagian = teks_laporan.split("---SECTION---")
+                
+                # FUNGSI PARSING ANGKA SKOR & CONFIDENCE DARI TEKS AI
+                def extract_val(text, label, default="0"):
+                    try:
+                        match = re.search(r'\*\*' + label + r'\*\*:\s*([^\n]+)', text, re.IGNORECASE)
+                        return match.group(1).strip() if match else default
+                    except: return default
+
+                def extract_num(text, label, default=0):
+                    val = extract_val(text, label)
+                    nums = re.findall(r'\d+', val)
+                    return int(nums[0]) if nums else default
+
+                skor_teks = clean_section_body(bagian[0]) if len(bagian) > 0 else ""
                 
                 st.session_state.laporan_aktif = {
                     "alamat": alamat_aset,
                     "lat": koordinat_lat,
                     "lng": koordinat_lng,
                     "info_peta": info_validasi_peta,
-                    "estimasi": clean_section_body(bagian[0]) if len(bagian) > 0 else "",
-                    "karakteristik": clean_section_body(bagian[1]) if len(bagian) > 1 else "",
-                    "akses": clean_section_body(bagian[2]) if len(bagian) > 2 else "",
-                    "poi": clean_section_body(bagian[3]) if len(bagian) > 3 else "",
-                    "swot": clean_section_body(bagian[4]) if len(bagian) > 4 else "",
-                    "rekomendasi": clean_section_body(bagian[5]) if len(bagian) > 5 else "",
-                    "kesimpulan": clean_section_body(bagian[6]) if len(bagian) > 6 else "",
+                    # Skor dan Metrik
+                    "optima_score": extract_num(skor_teks, "OPTIMA Score", 80),
+                    "optima_kategori": extract_val(skor_teks, "Kategori Potensi", "Potensi Menengah"),
+                    "optima_rekomendasi": extract_val(skor_teks, "Rekomendasi Utama", "SEWA KOMERSIAL"),
+                    "conf_sewa": extract_num(skor_teks, "Confidence Sewa", 70),
+                    "conf_ksp": extract_num(skor_teks, "Confidence KSP", 60),
+                    "conf_lelang": extract_num(skor_teks, "Confidence Lelang", 40),
+                    "analisis_skor": clean_section_body(skor_teks),
+                    # Bagian Laporan
+                    "estimasi": clean_section_body(bagian[1]) if len(bagian) > 1 else "",
+                    "karakteristik": clean_section_body(bagian[2]) if len(bagian) > 2 else "",
+                    "akses": clean_section_body(bagian[3]) if len(bagian) > 3 else "",
+                    "poi": clean_section_body(bagian[4]) if len(bagian) > 4 else "",
+                    "swot": clean_section_body(bagian[5]) if len(bagian) > 5 else "",
+                    "rekomendasi": clean_section_body(bagian[6]) if len(bagian) > 6 else "",
+                    "kesimpulan": clean_section_body(bagian[7]) if len(bagian) > 7 else "",
                 }
-                st.success("✅ Laporan Berhasil Disusun & Disimpan di Draft Lokal!")
+                st.success("✅ OPTIMA Asset Intelligence Berhasil Selesai Dihitung!")
             else:
                 st.error(f"❌ Gagal memproses laporan. Detail Error: {pesan_error_terakhir}")
 
-    # TAMPILAN KARTU KORPORAT DARI MEMORI ABADI
+    # TAMPILAN DASHBOARD HERO & KARTU HASIL AI
     if st.session_state.laporan_aktif:
         lap = st.session_state.laporan_aktif
         
+        # 1. HERO CARD : OPTIMA SCORE & CONFIDENCE METER (PALING ATAS)
+        with st.container(border=True):
+            st.markdown("### ⭐ OPTIMA EXECUTIVE SUMMARY & SCORE")
+            
+            col_skor, col_rekom = st.columns([0.35, 0.65])
+            with col_skor:
+                st.markdown(f"<div style='text-align: center; padding: 10px; border: 2px dashed #d4af37; border-radius: 12px;'>"
+                            f"<span style='font-size: 0.9em; opacity: 0.8;'>OPTIMA SCORE</span><br>"
+                            f"<span style='font-size: 3.5em; font-weight: 800; color: #d4af37;'>{lap['optima_score']}</span><br>"
+                            f"<span style='font-size: 0.9em; font-weight: bold;'>{lap['optima_kategori']}</span>"
+                            f"</div>", unsafe_allow_html=True)
+            
+            with col_rekom:
+                st.markdown(f"#### 🎯 REKOMENDASI TERBAIK : **{lap['optima_rekomendasi']}**")
+                st.write("**Probabilitas Kelayakan Skema (Confidence Meter):**")
+                
+                # Progress Bar untuk setiap skema
+                st.write(f"🏢 **Sewa Komersial ({lap['conf_sewa']}%)**")
+                st.progress(min(max(lap['conf_sewa'], 0), 100) / 100)
+                
+                st.write(f"🤝 **Kerja Sama Pemanfaatan / KSP ({lap['conf_ksp']}%)**")
+                st.progress(min(max(lap['conf_ksp'], 0), 100) / 100)
+                
+                st.write(f"🔨 **Penjualan Lelang ({lap['conf_lelang']}%)**")
+                st.progress(min(max(lap['conf_lelang'], 0), 100) / 100)
+            
+            st.divider()
+            st.markdown("#### 💡 Analisis Kelayakan Skor:")
+            st.markdown(lap['analisis_skor'])
+
+        # 2. IDENTITAS & LOKASI ASET
         with st.container(border=True):
             st.markdown("### 📌 IDENTITAS & LOKASI ASET")
             st.write(f"**Alamat Lengkap:** {lap['alamat']}")
@@ -529,6 +607,7 @@ with tab1:
             with col_sat: st.link_button("🛰️ Satelit (Pin Merah)", url_satelit, use_container_width=True)
             with col_earth: st.link_button("🌍 Google Earth 3D", url_earth, use_container_width=True)
 
+        # 3. KARTU NARASI PER BAB
         with st.container(border=True):
             st.markdown("### 💰 ESTIMASI HARGA PASAR (INDIKATIF)")
             st.markdown(lap['estimasi'])
@@ -564,6 +643,13 @@ with tab1:
                         "nama": nama_aset,
                         "lat": lap['lat'],
                         "lng": lap['lng'],
+                        # Menyimpan skor dan probabilitas
+                        "optima_score": lap['optima_score'],
+                        "optima_kategori": lap['optima_kategori'],
+                        "optima_rekomendasi": lap['optima_rekomendasi'],
+                        "conf_sewa": lap['conf_sewa'],
+                        "conf_ksp": lap['conf_ksp'],
+                        "conf_lelang": lap['conf_lelang'],
                         "data": {
                             "estimasi": lap['estimasi'],
                             "karakteristik": lap['karakteristik'],
@@ -574,281 +660,17 @@ with tab1:
                             "swot_contekan": lap['swot']
                         }
                     })
-                    st.success("✅ Berhasil disimpan ke Review! Silakan buka Tab 2 (Review & Edit) di atas.")
+                    st.success("✅ Berhasil disimpan ke Review! Pengerjaan Modul 2 akan kita lanjutkan setelah verifikasi Tahap 1 ini.")
         with col_btn2:
             if st.button("🗑️ Hapus Draft", use_container_width=True):
                 st.session_state.laporan_aktif = None
                 st.rerun()
 
 # ==========================================
-# --- TAB 2: REVIEW & REFINEMENT ---
+# --- TAB 2 & TAB 3 (PLACEHOLDER TAHAP SELANJUTNYA) ---
 # ==========================================
 with tab2:
-    st.markdown("### 📝 Review & Refinement Laporan")
-    if not st.session_state.buffer_laporan:
-        st.info("💡 Belum ada laporan di Buffer. Silakan Generate dan Pindahkan dulu dari Tab 1.")
-    else:
-        idx = st.selectbox(
-            "🏢 Pilih Aset yang Ingin Direview/Diedit:", 
-            range(len(st.session_state.buffer_laporan)), 
-            format_func=lambda x: st.session_state.buffer_laporan[x]['nama']
-        )
-        aset = st.session_state.buffer_laporan[idx]
-        
-        with st.expander("📍 Lihat Contekan POI & SWOT (Read-Only untuk Referensi)", expanded=False):
-            st.markdown("#### A. Pemetaan Fasilitas Terdekat (POI)")
-            st.markdown(aset['data'].get('poi_contekan', 'Tidak ada data POI.'))
-            st.divider()
-            st.markdown("#### B. Analisis SWOT Ringkas")
-            st.markdown(aset['data'].get('swot_contekan', 'Tidak ada data SWOT.'))
-            
-        st.markdown(f"### 📑 Memoles Isi Laporan: **{aset['nama']}**")
-        st.write("Silakan klik ikon **Pensil (✏️)** di pojok kanan untuk mengedit isi bagian tersebut. Judul bab statis agar tidak ganda di Excel.")
-        
-        def edit_box(field_key, label_judul, index):
-            unique_key = f"{field_key}_{index}"
-            backup_key = f"{field_key}_backup_{index}"
-            
-            if unique_key not in st.session_state:
-                st.session_state[unique_key] = aset['data'].get(field_key, "")
-            if backup_key not in st.session_state:
-                st.session_state[backup_key] = st.session_state[unique_key]
-            
-            with st.container(border=True):
-                st.markdown(f"#### {label_judul}")
-                
-                col1, col2 = st.columns([0.93, 0.07])
-                with col1:
-                    if st.session_state.get(f"is_edit_{unique_key}", False):
-                        st.session_state[unique_key] = st.text_area(
-                            "✏️ Mode Edit (Ubah teks di bawah ini):", 
-                            value=st.session_state[unique_key], 
-                            height=180,
-                            label_visibility="collapsed"
-                        )
-                    else:
-                        st.markdown(st.session_state[unique_key])
-                
-                with col2:
-                    if not st.session_state.get(f"is_edit_{unique_key}", False):
-                        if st.button("✏️", key=f"edit_{unique_key}", help="Edit bagian ini", use_container_width=True):
-                            st.session_state[f"is_edit_{unique_key}"] = True
-                            st.session_state[backup_key] = st.session_state[unique_key]
-                            st.rerun()
-                    else:
-                        if st.button("✅", key=f"save_{unique_key}", help="Simpan Editan", use_container_width=True):
-                            st.session_state[f"is_edit_{unique_key}"] = False
-                            st.session_state[backup_key] = st.session_state[unique_key]
-                            st.rerun()
-                        if st.button("❌", key=f"cancel_{unique_key}", help="Batal Edit", use_container_width=True):
-                            st.session_state[f"is_edit_{unique_key}"] = False
-                            st.session_state[unique_key] = st.session_state[backup_key]
-                            st.rerun()
-                            
-            return st.session_state[unique_key]
+    st.info("💡 **Modul 2: Review & Refinement Center** sedang dalam tahap sinkronisasi arsitektur OPTIMA. Kita akan membangun antarmukanya setelah Modul 1 terverifikasi.")
 
-        estimasi_final = edit_box("estimasi", "💰 Estimasi Harga Pasar (Indikatf)", idx)
-        karakteristik_final = edit_box("karakteristik", "🏘️ Karakteristik dan Dinamika Kawasan", idx)
-        akses_final = edit_box("akses", "🛣️ Evaluasi Aksesibilitas dan Konektivitas", idx)
-        rekomendasi_final = edit_box("rekomendasi", "🎯 Rekomendasi Pemanfaatan Optimal (HBU)", idx)
-        kesimpulan_final = edit_box("kesimpulan", "📝 Kesimpulan Akhir", idx)
-        
-        st.divider()
-        st.markdown("### 🏁 Finalisasi & Kirim Data")
-        st.write("Jika semua isi di atas sudah fiks, tekan tombol di bawah agar datanya siap disimpan permanen di Tab 3:")
-        
-        if st.button("💾 Simpan Perubahan & Kirim ke Tab 3", type="primary", use_container_width=True):
-            aset['data']['estimasi'] = estimasi_final
-            aset['data']['karakteristik'] = karakteristik_final
-            aset['data']['akses'] = akses_final
-            aset['data']['rekomendasi'] = rekomendasi_final
-            aset['data']['kesimpulan'] = kesimpulan_final
-            
-            st.success("🎉 Laporan berhasil diperbarui! Silakan buka **Tab 3 (Database & Manajemen)** di atas untuk mengunduh Excel/CSV atau simpan ke GSheet.")
-
-# ==========================================
-# --- TAB 3: DATABASE & MANAJEMEN ---
-# ==========================================
 with tab3:
-    st.markdown("### 💾 Pusat Database & Manajemen Aset")
-    
-    if not st.session_state.buffer_laporan:
-        st.info("💡 Belum ada data aset di sesi aktif ini untuk di-export. Selesaikan laporan di Tab 1 & Tab 2 terlebih dahulu.")
-    else:
-        st.subheader("📑 Daftar Aset Siap Simpan / Export")
-        
-        data_for_csv = []
-        for i, item in enumerate(st.session_state.buffer_laporan):
-            data_for_csv.append({
-                "Nama_Aset": item['nama'],
-                "Lat": item['lat'],
-                "Lng": item['lng'],
-                "Estimasi": st.session_state.get(f"estimasi_{i}", item['data']['estimasi']),
-                "Karakteristik": st.session_state.get(f"karakteristik_{i}", item['data']['karakteristik']),
-                "Akses": st.session_state.get(f"akses_{i}", item['data']['akses']),
-                "Rekomendasi": st.session_state.get(f"rekomendasi_{i}", item['data']['rekomendasi']),
-                "Kesimpulan": st.session_state.get(f"kesimpulan_{i}", item['data']['kesimpulan'])
-            })
-        
-        df_export = pd.DataFrame(data_for_csv)
-        st.dataframe(df_export[["Nama_Aset", "Lat", "Lng"]], use_container_width=True)
-        st.markdown("---")
-        
-        # 1. TOMBOL SIMPAN KE GSHEET (SMART SAVE / ANTI-DUPLIKAT)
-        st.subheader("☁️ Simpan ke Cloud Database (Google Sheets)")
-        st.write(f"Tekan tombol ini untuk menambahkan/memperbarui seluruh aset di atas ke database atas nama **{st.session_state.username}**:")
-        
-        if st.button("🚀 Simpan Permanen ke Google Sheets (Anti-Duplikat)", type="primary", use_container_width=True):
-            try:
-                client = get_gspread_client()
-                if client:
-                    sheet = client.open("Database_Aset_Negara").sheet1
-                    with st.spinner("⏳ Memeriksa dan mengirim data ke server Google Sheets..."):
-                        existing_data = sheet.get_all_values()
-                        
-                        for row_dict in data_for_csv:
-                            current_usn = str(st.session_state.username).strip().lower()
-                            target_nama = str(row_dict["Nama_Aset"]).strip().lower()
-                            
-                            found_row_idx = None
-                            for r_idx, row in enumerate(existing_data[1:], start=2):
-                                if len(row) > 2:
-                                    sheet_usn = str(row[1]).strip().lower()
-                                    sheet_nama = str(row[2]).strip().lower()
-                                    if sheet_usn == current_usn and sheet_nama == target_nama:
-                                        found_row_idx = r_idx
-                                        break
-                            
-                            if found_row_idx:
-                                existing_id = existing_data[found_row_idx - 1][0]
-                                row_data = [
-                                    existing_id,
-                                    st.session_state.username,
-                                    row_dict["Nama_Aset"],
-                                    row_dict["Lat"],
-                                    row_dict["Lng"],
-                                    row_dict["Estimasi"],
-                                    row_dict["Karakteristik"],
-                                    row_dict["Akses"],
-                                    row_dict["Rekomendasi"],
-                                    row_dict["Kesimpulan"]
-                                ]
-                                sheet.update(f"A{found_row_idx}:J{found_row_idx}", [row_data])
-                            else:
-                                start_id = len(existing_data) + 1
-                                row_data = [
-                                    start_id,
-                                    st.session_state.username,
-                                    row_dict["Nama_Aset"],
-                                    row_dict["Lat"],
-                                    row_dict["Lng"],
-                                    row_dict["Estimasi"],
-                                    row_dict["Karakteristik"],
-                                    row_dict["Akses"],
-                                    row_dict["Rekomendasi"],
-                                    row_dict["Kesimpulan"]
-                                ]
-                                sheet.append_row(row_data)
-                                existing_data.append(row_data)
-                            
-                    st.success("🎉 Berhasil! Data aset telah diperbarui secara cerdas di Google Sheets tanpa duplikat.")
-            except Exception as e:
-                st.error(f"❌ Gagal simpan ke GSheet: {e}")
-
-        # 2. FITUR DOWNLOAD EXCEL & CSV
-        st.subheader("📥 Unduh File untuk Laporan Manual & Canva")
-        col_dl1, col_dl2 = st.columns(2)
-        
-        with col_dl1:
-            csv_data = df_export.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Unduh Format CSV (Canva Bulk Create Ready)",
-                data=csv_data,
-                file_name=f"laporan_aset_{st.session_state.username}_canva.csv",
-                mime="text/csv",
-                use_container_width=True
-            )
-            
-        with col_dl2:
-            output = BytesIO()
-            with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                df_export.to_excel(writer, index=False, sheet_name='Data Appraisal')
-            excel_data = output.getvalue()
-            
-            st.download_button(
-                label="📥 Unduh Format Excel (.xlsx) untuk Arsip Kantor",
-                data=excel_data,
-                file_name=f"laporan_aset_{st.session_state.username}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True
-            )
-
-    st.markdown("---")
-    
-    # 3. LIVE DATABASE DENGAN LIMIT 50 TERBARU (ANTI-LEMOT) & FITUR HAPUS DATA
-    st.subheader("📊 Live Database & Manajemen Arsip Cloud")
-    
-    with st.expander("📖 Klik di sini untuk melihat & memanajemen Isi Live Database Google Sheets"):
-        try:
-            client_view = get_gspread_client()
-            if client_view:
-                sheet_view = client_view.open("Database_Aset_Negara").sheet1
-                records = sheet_view.get_all_records()
-                
-                if records:
-                    df_records = pd.DataFrame(records)
-                    
-                    if 'Username' in df_records.columns:
-                        df_records['Username'] = df_records['Username'].astype(str).str.strip().str.lower()
-                        
-                        if st.session_state.role == "admin":
-                            st.info("👑 **Mode Admin:** Menampilkan maksimal 50 data aset terbaru dari semua appraiser (Anti-Lemot).")
-                            df_show = df_records.tail(50).iloc[::-1] # Ambil 50 terakhir & balik urutan biar yg baru di atas
-                            st.dataframe(df_show, use_container_width=True)
-                        else:
-                            current_usn_str = str(st.session_state.username).strip().lower()
-                            st.info(f"👤 **Mode Appraiser:** Menampilkan maksimal 50 data aset terbaru milikmu (**{current_usn_str}**).")
-                            df_filtered = df_records[df_records['Username'] == current_usn_str]
-                            df_show = df_filtered.tail(50).iloc[::-1]
-                            st.dataframe(df_show, use_container_width=True)
-                            
-                        # FITUR BARU: HAPUS ASET DARI CLOUD TANPA BUKA GSHEET
-                        st.markdown("#### 🗑️ Hapus Aset dari Database Cloud")
-                        st.write("Pilih nama aset yang ingin kamu hapus secara permanen dari server Google Sheets:")
-                        
-                        daftar_pilihan = df_show['Nama_Aset'].tolist() if not df_show.empty else []
-                        if daftar_pilihan:
-                            aset_yg_dihapus = st.selectbox("Pilih Aset untuk Dihapus:", daftar_pilihan, key="delete_select")
-                            
-                            if st.button("🚨 Hapus Aset Terpilih Secara Permanen", type="secondary"):
-                                with st.spinner("⏳ Menghapus baris dari server Google Sheets..."):
-                                    all_vals = sheet_view.get_all_values()
-                                    target_row_idx = None
-                                    
-                                    for r_idx, row in enumerate(all_vals[1:], start=2):
-                                        if len(row) > 2:
-                                            sheet_usn = str(row[1]).strip().lower()
-                                            sheet_nama = str(row[2]).strip().lower()
-                                            
-                                            # Cek hak hapus: Admin bebas hapus, User cuma bisa hapus miliknya
-                                            if st.session_state.role == "admin" and sheet_nama == str(aset_yg_dihapus).strip().lower():
-                                                target_row_idx = r_idx
-                                                break
-                                            elif sheet_usn == str(st.session_state.username).strip().lower() and sheet_nama == str(aset_yg_dihapus).strip().lower():
-                                                target_row_idx = r_idx
-                                                break
-                                                
-                                    if target_row_idx:
-                                        sheet_view.delete_rows(target_row_idx)
-                                        st.success(f"✅ Berhasil menghapus '{aset_yg_dihapus}' dari Google Sheets!")
-                                        st.rerun()
-                                    else:
-                                        st.error("❌ Gagal menemukan baris data di server atau kamu tidak punya izin menghapusnya.")
-                        else:
-                            st.write("Tidak ada aset yang tersedia untuk dihapus.")
-                    else:
-                        st.warning("⚠️ Kolom 'Username' belum ditambahkan di Google Sheet.")
-                else:
-                    st.write("Database di Google Sheets masih kosong (baru ada baris judul).")
-        except Exception as e_view:
-            st.write(f"Belum bisa memuat database: {e_view}")
+    st.info("💡 **Modul 3: Executive Dashboard & Asset Repository** akan kita bangun dengan 4 KPI Cards (Total Aset, Sewa, KSP, Lelang) di tahap akhir.")
